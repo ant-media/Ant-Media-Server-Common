@@ -99,17 +99,24 @@ public class AppSettings {
 	 */
 	private String stalkerDBPassword;
 
-
-
 	/**
 	 * The directory contains the tensorflow object detection model
 	 */
-	private String objectDetectionDir;
+	private boolean objectDetectionEnabled =false;
 
 
 	private int createPreviewPeriod;
 
+	/**
+	 * Restart stream fetcher period in seconds
+	 */
+	private int restartStreamFetcherPeriod = 0;
 
+	/**
+	 * Stream fetcher buffer time in milliseconds. 
+	 * Stream is buffered for this duration and after that it will be started.
+	 */
+	private int streamFetcherBufferTime = 0;
 
 	public boolean isAddDateTimeToMp4FileName() {
 		return addDateTimeToMp4FileName;
@@ -251,12 +258,12 @@ public class AppSettings {
 		this.acceptOnlyStreamsInDataStore = acceptOnlyStreamsInDataStore;
 	}
 
-	public String getObjectDetectionDir() {
-		return objectDetectionDir;
+	public boolean isObjectDetectionEnabled() {
+		return objectDetectionEnabled;
 	}
 
-	public void setObjectDetectionDir(String modelDir) {
-		this.objectDetectionDir = modelDir;
+	public void setObjectDetectionEnabled(Boolean ObjectDetectionEnabled) {
+		this.objectDetectionEnabled = ObjectDetectionEnabled;
 	}
 
 	public String getYoutubeClientSecret() {
@@ -354,5 +361,21 @@ public class AppSettings {
 
 	public void setStalkerDBPassword(String stalkerDBPassword) {
 		this.stalkerDBPassword = stalkerDBPassword;
+	}
+
+	public int getRestartStreamFetcherPeriod() {
+		return this.restartStreamFetcherPeriod ;
+	}
+
+	public void setRestartStreamFetcherPeriod(int restartStreamFetcherPeriod) {
+		this.restartStreamFetcherPeriod = restartStreamFetcherPeriod;
+	}
+
+	public int getStreamFetcherBufferTime() {
+		return streamFetcherBufferTime;
+	}
+
+	public void setStreamFetcherBufferTime(int streamFetcherBufferTime) {
+		this.streamFetcherBufferTime = streamFetcherBufferTime;
 	}
 }
