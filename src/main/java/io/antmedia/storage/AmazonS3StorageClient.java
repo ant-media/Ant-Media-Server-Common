@@ -21,6 +21,7 @@ import com.amazonaws.services.s3.model.PutObjectRequest;
 
 public class AmazonS3StorageClient extends StorageClient {
 
+	//pull request test
 	private AmazonS3Client amazonS3;
 	
 	protected static Logger logger = LoggerFactory.getLogger(AmazonS3StorageClient.class);
