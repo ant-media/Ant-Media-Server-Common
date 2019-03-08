@@ -28,7 +28,7 @@ public abstract class StorageClient {
 	private String secretKey;
 	private String region;
 	private String storageName;
-
+	private String endpoint;
 	
 	/**
 	 * Delete file from storage
@@ -87,6 +87,14 @@ public abstract class StorageClient {
 
 	public void setStorageName(String storageName) {
 		this.storageName = storageName;
+	}
+
+	public String getEndpoint() {
+		return endpoint;
+	}
+
+	public void setEndpoint(String endpoint) {
+		this.endpoint = endpoint;
 	}
 
 }
