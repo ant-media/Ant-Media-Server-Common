@@ -58,6 +58,8 @@ public interface IDataStore {
 
 	List<Broadcast> filterBroadcastList(int offset, int size, String type);
 
+	List<Broadcast> filterBroadcastListByType(int offset, int size, String type, String value);
+
 	boolean removeEndpoint(String id, Endpoint endpoint);
 
 	List<Broadcast> getExternalStreamsList();
