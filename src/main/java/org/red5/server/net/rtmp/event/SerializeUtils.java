@@ -18,6 +18,7 @@
 
 package org.red5.server.net.rtmp.event;
 
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import org.apache.mina.core.buffer.IoBuffer;
 
@@ -53,7 +54,7 @@ public class SerializeUtils {
 
     public static void ByteArrayToNioByteBuffer(byte[] byteBuf, ByteBuffer buf) {
         buf.put(byteBuf);
-        buf.flip();
+        ((Buffer)buf).flip();
     }
 
 }

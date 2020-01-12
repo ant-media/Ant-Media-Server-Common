@@ -28,6 +28,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 
 import java.io.IOException;
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -655,7 +656,7 @@ public class MuxAdaptor implements IRecordingListener, IScheduledJob {
 		// we add the tag size
 		tagBuffer.putInt(TAG_HEADER_LENGTH + bodySize);
 		// flip so we can process from the beginning
-		tagBuffer.flip();
+		((Buffer)tagBuffer).flip();
 		// write the tag
 
 		return tagBuffer.array();

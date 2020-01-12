@@ -19,6 +19,7 @@
 package org.red5.server.net.rtmp;
 
 import java.math.BigInteger;
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.security.InvalidKeyException;
 import java.security.KeyFactory;
@@ -410,7 +411,7 @@ public abstract class RTMPHandshake implements IHandshake {
         swfv.putInt(swfSize);
         swfv.putInt(swfSize);
         swfv.put(bytesFromServerHash);
-        swfv.flip();
+        ((Buffer)swfv).flip();
         swfVerificationBytes = new byte[42];
         swfv.get(swfVerificationBytes);
         log.debug("initialized swf verification response from swfSize: {} swfHash:\n{}\n{}", swfSize, Hex.encodeHexString(swfHash), Hex.encodeHexString(swfVerificationBytes));
@@ -564,11 +565,11 @@ public abstract class RTMPHandshake implements IHandshake {
         }
         ByteBuffer tmp = ByteBuffer.allocate(4);
         tmp.putInt(v0);
-        tmp.flip();
+        ((Buffer)tmp).flip();
         System.arraycopy(tmp.array(), 0, array, offset, 4);
-        tmp.clear();
+        ((Buffer)tmp).clear();
         tmp.putInt(v1);
-        tmp.flip();
+        ((Buffer)tmp).flip();
         System.arraycopy(tmp.array(), 0, array, offset + 4, 4);
     }
 
