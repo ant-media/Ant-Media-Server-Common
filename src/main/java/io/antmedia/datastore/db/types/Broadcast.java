@@ -131,7 +131,7 @@ public class Broadcast {
 	@ApiModelProperty(value = "the category of the stream")
 	private String category;
 	
-	@ApiModelProperty(value = "the IP Address of the IP Camera")
+	@ApiModelProperty(value = "the IP Address of the IP Cameraor publisher")
 	private String ipAddr;
 	
 	@ApiModelProperty(value = "the user name of the IP Camera")
@@ -221,7 +221,23 @@ public class Broadcast {
 	@ApiModelProperty(value = "the publishing start time of the stream")
 	private long startTime = 0;
 	
+	@ApiModelProperty(value = "the received bytes until now")
+	private long receivedBytes = 0;
 	
+	@ApiModelProperty(value = "the received bytes / duration")
+	private long bitrate = 0;
+	
+	@ApiModelProperty(value = "User - Agent")
+	private String userAgent = "N/A";
+	
+	@ApiModelProperty(value = "latitude of the broadcasting location")
+	private String latitude;
+	
+	@ApiModelProperty(value = "longitude of the broadcasting location")
+	private String longitude;
+	
+	@ApiModelProperty(value = "altitude of the broadcasting location")
+	private String altitude;
 
 	public Broadcast(String status, String name) {
 		this.setStatus(status);
@@ -509,4 +525,51 @@ public class Broadcast {
 		this.startTime = startTime;
 	}
 
+	public long getReceivedBytes() {
+		return receivedBytes;
+	}
+
+	public void setReceivedBytes(long receivedBytes) {
+		this.receivedBytes = receivedBytes;
+	}
+
+	public long getBitrate() {
+		return bitrate;
+	}
+
+	public void setBitrate(long bitrate) {
+		this.bitrate = bitrate;
+	}
+
+	public String getUserAgent() {
+		return userAgent;
+	}
+
+	public void setUserAgent(String userAgent) {
+		this.userAgent = userAgent;
+	}
+
+	public String getLatitude() {
+		return latitude;
+	}
+
+	public void setLatitude(String latitude) {
+		this.latitude = latitude;
+	}
+
+	public String getLongitude() {
+		return longitude;
+	}
+
+	public void setLongitude(String longitude) {
+		this.longitude = longitude;
+	}
+
+	public String getAltitude() {
+		return altitude;
+	}
+
+	public void setAltitude(String altitude) {
+		this.altitude = altitude;
+	}
 }

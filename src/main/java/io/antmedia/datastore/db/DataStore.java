@@ -8,6 +8,7 @@ import java.util.List;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.ConferenceRoom;
 import io.antmedia.datastore.db.types.Endpoint;
+import io.antmedia.datastore.db.types.P2PConnection;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.db.types.StreamInfo;
 import io.antmedia.datastore.db.types.TensorFlowObject;
@@ -73,6 +74,15 @@ public abstract class DataStore {
 
 	public abstract void close();
 
+	/**
+	 * Returns the VoD List in order
+	 * 
+	 * @param offset: the number of items to skip
+	 * @param size: batch size
+	 * @param sortBy can get "name" or "date" values
+	 * @param orderBy can get "desc" or "asc"
+	 * @return
+	 */
 	public abstract List<VoD> getVodList(int offset, int size, String sortBy, String orderBy);
 
 	public abstract boolean removeAllEndpoints(String id);
@@ -343,31 +353,48 @@ public abstract class DataStore {
 	 * @param ipAddr
 	 * @param streamUrl
 	 */
-	protected void updateStreamInfo(Broadcast broadcast, String name, String description, String userName, String password, String ipAddr, String streamUrl )
+	protected void updateStreamInfo(Broadcast broadcast, Broadcast newBroadcast)
 	{
-		if (name != null) {
-			broadcast.setName(name);
+		if (newBroadcast.getName() != null) {
+			broadcast.setName(newBroadcast.getName());
 		}
 		
-		if (description != null) {
-			broadcast.setDescription(description);
+		if (newBroadcast.getDescription() != null) {
+			broadcast.setDescription(newBroadcast.getDescription());
 		}
 		
-		if (userName!= null) {
-			broadcast.setUsername(userName);
+		if (newBroadcast.getUsername() != null) {
+			broadcast.setUsername(newBroadcast.getUsername());
 		}
 		
-		if (password != null) {
-			broadcast.setPassword(password);
+		if (newBroadcast.getPassword() != null) {
+			broadcast.setPassword(newBroadcast.getPassword());
 		}
 		
-		if (ipAddr != null) {
-			broadcast.setIpAddr(ipAddr);
+		if (newBroadcast.getIpAddr() != null) {
+			broadcast.setIpAddr(newBroadcast.getIpAddr());
 		}
 		
-		if (streamUrl != null) {
-			broadcast.setStreamUrl(streamUrl);
+		if (newBroadcast.getStreamUrl() != null) {
+			broadcast.setStreamUrl(newBroadcast.getStreamUrl());
 		}
+		
+		if (newBroadcast.getLatitude() != null) {
+			broadcast.setLatitude(newBroadcast.getLatitude());
+		}
+		
+		if (newBroadcast.getLongitude() != null) {
+			broadcast.setLongitude(newBroadcast.getLongitude());
+		}
+		
+		if (newBroadcast.getAltitude() != null) {
+			broadcast.setAltitude(newBroadcast.getAltitude());
+		}
+		
+		broadcast.setReceivedBytes(newBroadcast.getReceivedBytes());
+		broadcast.setDuration(newBroadcast.getDuration());
+		broadcast.setBitrate(newBroadcast.getBitrate());
+		broadcast.setUserAgent(newBroadcast.getUserAgent());
 	}
 
 	/**
@@ -414,6 +441,26 @@ public abstract class DataStore {
 		return vodList.subList(offset, Math.min(offset+size, vodList.size()));
 	}
 
+	/**
+	 * Creates new P2PConnection
+	 * @param conn - P2PConnection object
+	 * @return boolean - success 
+	 */
+	public abstract boolean createP2PConnection(P2PConnection conn);
+	
+	/**
+	 * Get the P2PConnection by streamId
+	 * @param streamId - stream id for P2PConnection
+	 * @return P2PConnection - if exist else null 
+	 */
+	public abstract P2PConnection getP2PConnection(String streamId);
+	
+	/**
+	 * Deletes a P2PConnection
+	 * @param conn - P2PConnection object
+	 * @return boolean - success 
+	 */
+	public abstract boolean deleteP2PConnection(String streamId);
 
 //**************************************
 //ATTENTION: Write function descriptions while adding new functions
