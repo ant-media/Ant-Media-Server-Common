@@ -10,6 +10,7 @@
 
 package org.webrtc;
 
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import javax.annotation.Nullable;
 import org.webrtc.VideoFrame.I420Buffer;
@@ -85,16 +86,16 @@ public class JavaI420Buffer implements VideoFrame.I420Buffer {
     ByteBuffer buffer =
         JniCommon.nativeAllocateByteBuffer(width * height + 2 * strideUV * chromaHeight);
 
-    buffer.position(yPos);
-    buffer.limit(uPos);
+    ((Buffer)buffer).position(yPos);
+    ((Buffer)buffer).limit(uPos);
     ByteBuffer dataY = buffer.slice();
 
-    buffer.position(uPos);
-    buffer.limit(vPos);
+    ((Buffer)buffer).position(uPos);
+    ((Buffer)buffer).limit(vPos);
     ByteBuffer dataU = buffer.slice();
 
-    buffer.position(vPos);
-    buffer.limit(vPos + strideUV * chromaHeight);
+    ((Buffer)buffer).position(vPos);
+    ((Buffer)buffer).limit(vPos + strideUV * chromaHeight);
     ByteBuffer dataV = buffer.slice();
 
     return new JavaI420Buffer(width, height, dataY, width, dataU, strideUV, dataV, strideUV,
