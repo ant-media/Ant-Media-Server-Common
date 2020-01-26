@@ -1009,7 +1009,7 @@ public class FFmpegFrameRecorder extends FrameRecorder {
                passing the same picture again */
 		} else {
 			BytePointer data = image[0] instanceof ByteBuffer
-					? new BytePointer((ByteBuffer)image[0].position(0))
+					? new BytePointer((ByteBuffer)(image[0].position(0)))
 							: new BytePointer(new Pointer(image[0].position(0)));
 
 					if (pixelFormat == AV_PIX_FMT_NONE) {
@@ -1126,7 +1126,7 @@ public class FFmpegFrameRecorder extends FrameRecorder {
 			for (int i = 0; i < samples.length; i++) {
 				ByteBuffer b = (ByteBuffer)samples[i];
 				if (samples_in[i] instanceof BytePointer && samples_in[i].capacity() >= inputSize && b.hasArray()) {
-					((BytePointer)samples_in[i]).position(0).put(b.array(), b.position(), inputSize);
+					((BytePointer)samples_in[i]).position(0).put(b.array(), ((Buffer)b).position(), inputSize);
 				} else {
 					samples_in[i] = new BytePointer(b);
 				}

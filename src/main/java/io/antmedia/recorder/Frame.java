@@ -249,33 +249,33 @@ public class Frame implements Indexable {
             if (srcBuffers[0] instanceof ByteBuffer)
                 // dataSize is 1
                 for (i = 0; i < srcBuffers.length; i++)
-                    clonedBuffers[i] = ByteBuffer.allocateDirect(srcBuffers[i].capacity())
-                            .put((ByteBuffer) srcBuffers[i]).rewind();
+                    clonedBuffers[i] = ((Buffer)ByteBuffer.allocateDirect(srcBuffers[i].capacity())
+                            .put((ByteBuffer) srcBuffers[i])).rewind();
             else if (srcBuffers[0] instanceof ShortBuffer) {
                 dataSize = Short.SIZE >> 3; // dataSize is 2
                 for (i = 0; i < srcBuffers.length; i++)
-                    clonedBuffers[i] = ByteBuffer.allocateDirect(srcBuffers[i].capacity() * dataSize)
-                            .order(ByteOrder.nativeOrder()).asShortBuffer().put((ShortBuffer) srcBuffers[i]).rewind();
+                    clonedBuffers[i] = ((Buffer)ByteBuffer.allocateDirect(srcBuffers[i].capacity() * dataSize)
+                            .order(ByteOrder.nativeOrder()).asShortBuffer().put((ShortBuffer) srcBuffers[i])).rewind();
             } else if (srcBuffers[0] instanceof IntBuffer) {
                 dataSize = Integer.SIZE >> 3; // dataSize is 4
                 for (i = 0; i < srcBuffers.length; i++)
-                    clonedBuffers[i] = ByteBuffer.allocateDirect(srcBuffers[i].capacity() * dataSize)
-                            .order(ByteOrder.nativeOrder()).asIntBuffer().put((IntBuffer) srcBuffers[i]).rewind();
+                    clonedBuffers[i] = ((Buffer)ByteBuffer.allocateDirect(srcBuffers[i].capacity() * dataSize)
+                            .order(ByteOrder.nativeOrder()).asIntBuffer().put((IntBuffer) srcBuffers[i])).rewind();
             } else if (srcBuffers[0] instanceof LongBuffer) {
                 dataSize = Long.SIZE >> 3; // dataSize is 8
                 for (i = 0; i < srcBuffers.length; i++)
-                    clonedBuffers[i] = ByteBuffer.allocateDirect(srcBuffers[i].capacity() * dataSize)
-                            .order(ByteOrder.nativeOrder()).asLongBuffer().put((LongBuffer) srcBuffers[i]).rewind();
+                    clonedBuffers[i] = ((Buffer)ByteBuffer.allocateDirect(srcBuffers[i].capacity() * dataSize)
+                            .order(ByteOrder.nativeOrder()).asLongBuffer().put((LongBuffer) srcBuffers[i])).rewind();
             } else if (srcBuffers[0] instanceof FloatBuffer) {
                 dataSize = Float.SIZE >> 3; // dataSize is 4
                 for (i = 0; i < srcBuffers.length; i++)
-                    clonedBuffers[i] = ByteBuffer.allocateDirect(srcBuffers[i].capacity() * dataSize)
-                            .order(ByteOrder.nativeOrder()).asFloatBuffer().put((FloatBuffer) srcBuffers[i]).rewind();
+                    clonedBuffers[i] = ((Buffer)ByteBuffer.allocateDirect(srcBuffers[i].capacity() * dataSize)
+                            .order(ByteOrder.nativeOrder()).asFloatBuffer().put((FloatBuffer) srcBuffers[i])).rewind();
             } else if (srcBuffers[0] instanceof DoubleBuffer) {
                 dataSize = Double.SIZE >> 3; // dataSize is 8
                 for (i = 0; i < srcBuffers.length; i++)
-                    clonedBuffers[i] = ByteBuffer.allocateDirect(srcBuffers[i].capacity() * dataSize)
-                            .order(ByteOrder.nativeOrder()).asDoubleBuffer().put((DoubleBuffer) srcBuffers[i]).rewind();
+                    clonedBuffers[i] = ((Buffer)ByteBuffer.allocateDirect(srcBuffers[i].capacity() * dataSize)
+                            .order(ByteOrder.nativeOrder()).asDoubleBuffer().put((DoubleBuffer) srcBuffers[i])).rewind();
             }
 
             for (i = 0; i < srcBuffers.length; i++)

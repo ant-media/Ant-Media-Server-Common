@@ -39,11 +39,11 @@ public class SerializeUtils {
     }
 
     public static byte[] NioByteBufferToByteArray(ByteBuffer buf) {
-        byte[] byteBuf = new byte[buf.limit()];
-        int pos = buf.position();
-        buf.position(0);
+        byte[] byteBuf = new byte[((Buffer)buf).limit()];
+        int pos = ((Buffer)buf).position();
+        ((Buffer)buf).position(0);
         buf.get(byteBuf);
-        buf.position(pos);
+        ((Buffer)buf).position(pos);
         return byteBuf;
     }
 

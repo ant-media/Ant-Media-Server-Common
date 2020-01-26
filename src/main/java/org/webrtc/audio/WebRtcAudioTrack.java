@@ -10,6 +10,7 @@
 
 package org.webrtc.audio;
 
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 
 import javax.annotation.Nullable;
@@ -137,7 +138,7 @@ public class WebRtcAudioTrack {
 
 
 	public ByteBuffer getPlayoutData() {
-		byteBuffer.rewind();
+		((Buffer)byteBuffer).rewind();
 		// Fixed size in bytes of each 10ms block of audio data that we ask for
 		// using callbacks to the native WebRTC client.
 		final int sizeInBytes = byteBuffer.capacity();

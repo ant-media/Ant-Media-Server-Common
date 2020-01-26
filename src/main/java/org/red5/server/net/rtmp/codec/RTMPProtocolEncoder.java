@@ -18,6 +18,7 @@
 
 package org.red5.server.net.rtmp.codec;
 
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
@@ -859,11 +860,11 @@ public class RTMPProtocolEncoder implements Constants, IEventEncoder {
                     if (element instanceof ByteBuffer) {
                         // a byte buffer indicates that serialization is already complete, send raw
                         final ByteBuffer buf = (ByteBuffer) element;
-                        buf.mark();
+                        ((Buffer)buf).mark();
                         try {
                             out.put(buf);
                         } finally {
-                            buf.reset();
+                            ((Buffer)buf).reset();
                         }
                     } else {
                         // standard serialize

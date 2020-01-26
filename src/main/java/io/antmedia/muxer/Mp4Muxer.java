@@ -18,6 +18,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 
 import java.io.File;
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.util.*;
@@ -454,9 +455,9 @@ public class Mp4Muxer extends Muxer {
             videoPkt.flags(videoPkt.flags() | AV_PKT_FLAG_KEY);
         }
 
-		encodedVideoFrame.rewind();
+		((Buffer)encodedVideoFrame).rewind();
 		videoPkt.data(new BytePointer(encodedVideoFrame));
-		videoPkt.size(encodedVideoFrame.limit());
+		videoPkt.size(((Buffer)encodedVideoFrame).limit());
 		videoPkt.position(0);
 		writePacket(videoPkt);
 

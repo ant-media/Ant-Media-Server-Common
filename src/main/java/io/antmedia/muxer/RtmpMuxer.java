@@ -35,6 +35,7 @@ import static org.bytedeco.javacpp.avutil.av_rescale_q_rnd;
 import static org.bytedeco.javacpp.avutil.av_strerror;
 import static org.bytedeco.javacpp.avutil.AVMEDIA_TYPE_AUDIO;
 
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -442,13 +443,13 @@ public class RtmpMuxer extends Muxer {
 			videoPkt.stream_index(streamIndex);
 			videoPkt.pts(timestamp);
 			videoPkt.dts(timestamp);
-			
-			encodedVideoFrame.rewind();
+
+			((Buffer)encodedVideoFrame).rewind();
 			if (isKeyFrame) {
 				videoPkt.flags(videoPkt.flags() | AV_PKT_FLAG_KEY);
 			}
 			videoPkt.data(new BytePointer(encodedVideoFrame));
-			videoPkt.size(encodedVideoFrame.limit());
+			videoPkt.size(((Buffer)encodedVideoFrame).limit());
 			videoPkt.position(0);
 			
 			AVStream outStream = outputFormatContext.streams(videoPkt.stream_index());

@@ -41,6 +41,7 @@ import static org.bytedeco.javacpp.avutil.av_strerror;
 import java.io.File;
 import java.io.FilenameFilter;
 import java.io.IOException;
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.util.ArrayList;
@@ -640,15 +641,15 @@ public class HLSMuxer extends Muxer  {
 		videoPkt.stream_index(streamIndex);
 		videoPkt.pts(timestamp);
 		videoPkt.dts(timestamp);
-		
-		encodedVideoFrame.rewind();
+
+		((Buffer)encodedVideoFrame).rewind();
 		if (isKeyFrame) {
 			videoPkt.flags(videoPkt.flags() | AV_PKT_FLAG_KEY);
 		}
 		
 		BytePointer bytePointer = new BytePointer(encodedVideoFrame);
 		videoPkt.data(bytePointer);
-		videoPkt.size(encodedVideoFrame.limit());
+		videoPkt.size(((Buffer)encodedVideoFrame).limit());
 		videoPkt.position(0);
 		
 	

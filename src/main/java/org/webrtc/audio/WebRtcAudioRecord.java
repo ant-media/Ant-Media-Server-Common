@@ -12,6 +12,7 @@ package org.webrtc.audio;
 
 
 import java.lang.System;
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
@@ -78,7 +79,7 @@ public class WebRtcAudioRecord {
 
 
 	public void notifyDataIsReady(byte[] audioData) {
-		byteBuffer.clear();
+		((Buffer)byteBuffer).clear();
 		byteBuffer.put(audioData);
 
 		nativeDataIsRecorded(nativeAudioRecord, audioData.length);
@@ -88,7 +89,7 @@ public class WebRtcAudioRecord {
 	 * 10ms of audio data
 	 */
 	public void notifyDataWithEmptyBuffer() {
-		byteBuffer.clear();
+		((Buffer)byteBuffer).clear();
 		byteBuffer.put(emptyBytes);
 		
 		nativeDataIsRecorded(nativeAudioRecord, emptyBytes.length);
@@ -98,11 +99,11 @@ public class WebRtcAudioRecord {
 	 * @param audio => 20ms of encoded audio data
 	 */
 	public void notifyEncodedData(ByteBuffer audio) {
-		if (audio.limit() <= encodedByteBuffer.capacity()) {
+		if (((Buffer)audio).limit() <= encodedByteBuffer.capacity()) {
 			encodedByteBuffer.clear();
-			audio.rewind();
+			((Buffer)audio).rewind();
 			encodedByteBuffer.put(audio);
-			nativeEncodedDataIsReady(nativeAudioRecord, audio.limit());
+			nativeEncodedDataIsReady(nativeAudioRecord, ((Buffer)audio).limit());
 		}
 		else {
 			logger.warn("Discarding audio packet because audio packet size({}) is bigger than buffer capacity{} and limit {}", audio.limit(), encodedByteBuffer.capacity(), encodedByteBuffer.limit());
