@@ -5,6 +5,8 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
+import io.antmedia.datastore.db.types.Playlist;
+
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.ConferenceRoom;
 import io.antmedia.datastore.db.types.Endpoint;
@@ -391,6 +393,10 @@ public abstract class DataStore {
 			broadcast.setAltitude(newBroadcast.getAltitude());
 		}
 		
+		if (newBroadcast.getMainTrackStreamId() != null) {
+			broadcast.setMainTrackStreamId(newBroadcast.getMainTrackStreamId());
+		}
+		
 		broadcast.setReceivedBytes(newBroadcast.getReceivedBytes());
 		broadcast.setDuration(newBroadcast.getDuration());
 		broadcast.setBitrate(newBroadcast.getBitrate());
@@ -461,7 +467,44 @@ public abstract class DataStore {
 	 * @return boolean - success 
 	 */
 	public abstract boolean deleteP2PConnection(String streamId);
+	
+	/**
+	 * Add a subtrack id to a main track (broadcast)
+	 * @param mainTrackId - main track id
+	 * @param subTrackId - main track id
+	 * @return boolean - success 
+	 */
+	public abstract boolean addSubTrack(String mainTrackId, String subTrackId);
 
+
+	/**	
+	 * Creates new Playlist	
+	 * @param playlist - Playlist object	
+	 * @return boolean - success 	
+	 */	
+	public abstract boolean createPlaylist(Playlist playlist);	
+
+	/**	
+	 * Get the Playlist by playlistId	
+	 * @param playlistId - playlist id for Playlist	
+	 * @return Playlist - if exist else null 	
+	 */	
+	public abstract Playlist getPlaylist(String playlistId);	
+
+	/**	
+	 * Deletes a Playlist	
+	 * @param playlistId - Playlist object	
+	 * @return boolean - success 	
+	 */	
+	public abstract boolean deletePlaylist(String playlistId);		
+
+	/**	
+	 * Edits previously saved Playlist	
+	 * @param playlist - Playlist 	
+	 * @return true if successfully edited, false if not	
+	 */	
+	public abstract boolean editPlaylist(String playlistId, Playlist playlist);
+	
 //**************************************
 //ATTENTION: Write function descriptions while adding new functions
 //**************************************	
