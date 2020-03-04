@@ -51,11 +51,4 @@ public interface IAntMediaStreamHandler {
      * @param muxAdaptor
      */
     public void muxAdaptorRemoved(MuxAdaptor muxAdaptor);
-
-    /***
-     * Checks a Stream parameters is valid.
-     *
-     * @param inputFormatContext, pkt
-     */
-	public boolean isValidStreamParameters(AVFormatContext inputFormatContext, AVPacket pkt);
 }

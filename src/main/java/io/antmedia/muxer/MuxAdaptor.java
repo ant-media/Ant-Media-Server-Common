@@ -587,10 +587,6 @@ public class MuxAdaptor implements IRecordingListener, IScheduledJob {
             int keyFrame = pkt.flags() & AV_PKT_FLAG_KEY;
             if (keyFrame == 1) {
                 firstKeyFrameReceivedChecked = true;
-                if(!appAdapter.isValidStreamParameters(inputFormatContext, pkt)) {
-                    getBroadcastStream().stop();
-                    return;
-                }
             } else {
                 logger.warn("First video packet is not key frame. It will drop for direct muxing. Stream {}", streamId);
                 // return if firstKeyFrameReceived is not received
