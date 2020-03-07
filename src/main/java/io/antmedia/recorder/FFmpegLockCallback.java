@@ -1,6 +1,6 @@
 package io.antmedia.recorder;
 
-import static org.bytedeco.javacpp.avcodec.av_lockmgr_register;
+import static org.bytedeco.ffmpeg.global.avcodec.av_lockmgr_register;
 
 import java.util.HashMap;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -9,8 +9,8 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import org.bytedeco.javacpp.IntPointer;
 import org.bytedeco.javacpp.PointerPointer;
-import org.bytedeco.javacpp.avcodec;
-import org.bytedeco.javacpp.avcodec.Cb_PointerPointer_int;
+import org.bytedeco.ffmpeg.global.avcodec;
+import org.bytedeco.ffmpeg.avcodec.Cb_PointerPointer_int;
 import org.bytedeco.javacpp.annotation.Cast;
 
 public class FFmpegLockCallback {
