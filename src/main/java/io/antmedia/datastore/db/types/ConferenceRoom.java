@@ -36,7 +36,7 @@ public class ConferenceRoom {
 	private long endDate;
 	
 	@ApiModelProperty(value = "the list of streams of the Conference Room")
-	private List<String> roomStreamList = new ArrayList<String>();
+	private List<RoomStream> roomStreamList = new ArrayList<>();
 	
 	public String getRoomId() {
 		return roomId;
@@ -62,11 +62,11 @@ public class ConferenceRoom {
 		this.endDate = endDate;
 	}
 	
-	public List<String> getRoomStreamList() {
+	public List<RoomStream> getRoomStreamList() {
 		return roomStreamList;
 	}
 
-	public void setRoomStreamList(List<String> rooms) {
+	public void setRoomStreamList(List<RoomStream> rooms) {
 		this.roomStreamList = rooms;
 	}
 
