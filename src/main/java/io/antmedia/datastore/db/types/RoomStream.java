@@ -7,10 +7,10 @@ import io.swagger.annotations.ApiModelProperty;
 public class RoomStream {
 	
 	@ApiModelProperty(value = "the ID of Stream")
-	public  String streamId;
+	private  String streamId;
 	
 	@ApiModelProperty(value = "the IP of Stream Origin")
-	public  String streamOriginIP;
+	private  String streamOriginIP;
 	
 	public String getStreamId() {
 		return streamId;
