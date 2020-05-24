@@ -1,5 +1,10 @@
 package io.antmedia.statistic;
 
+import org.apache.kafka.clients.consumer.Consumer;
+import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.Producer;
+
 import io.antmedia.statistic.type.WebRTCAudioReceiveStats;
 import io.antmedia.statistic.type.WebRTCAudioSendStats;
 import io.antmedia.statistic.type.WebRTCVideoReceiveStats;
@@ -39,5 +44,9 @@ public interface IStatsCollector {
 	 * @return true if not exceeding the limit, false if exceeding limit
 	 */
 	public boolean enoughResource();
+	
+	public Producer<Long, String> getKafkaProducer();
+	
+	public Consumer<String, String> getKafkaConsumer();
 	
 }

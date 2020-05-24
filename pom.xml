@@ -302,5 +302,9 @@
                 </exclusion>
             </exclusions>
         </dependency>
+        <dependency>
+		    <groupId>org.apache.kafka</groupId>
+		    <artifactId>kafka-streams</artifactId>
+        </dependency>
 	</dependencies>	
 </project>
