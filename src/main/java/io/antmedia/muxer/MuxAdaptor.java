@@ -641,11 +641,10 @@ public class MuxAdaptor implements IRecordingListener {
 							buffering = true;
 							//if buffer duration somehow is more than 5 times bufferTimeMs
 							logger.warn("Buffer is increased({}) too much for stream: {}", getBufferedDurationMs() ,streamId);
-							AVPacket pkt;
 							int i = 0;
-							while ((pkt = bufferQueue.poll()) != null) 
+							while ((bufferQueue.poll()) != null) 
 							{
-								pkt.close();
+								bufferQueue.poll().close();
 								if (i % 10 == 0) 
 								{
 									i = 0;
@@ -1099,7 +1098,10 @@ public class MuxAdaptor implements IRecordingListener {
 						if (pktTimeDifferenceMs < passedTime) 
 						{
 							writePacket(inputFormatContext.streams(tempPacket.stream_index()), tempPacket);
-							av_packet_unref(tempPacket);
+							if(tempPacket != null && tempPacket.size() >= 0) {
+								av_packet_unref(tempPacket);
+							}
+							
 							bufferQueue.remove(); //remove the packet from the queue
 							availableBufferQueue.offer(tempPacket); //make packet available for new incoming packets
 						}
