@@ -5,6 +5,10 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.Iterator;
 
 import io.antmedia.datastore.db.types.Broadcast;
@@ -12,7 +16,6 @@ import io.antmedia.datastore.db.types.ConferenceRoom;
 import io.antmedia.datastore.db.types.ConnectionEvent;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.P2PConnection;
-import io.antmedia.datastore.db.types.Playlist;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.db.types.StreamInfo;
 import io.antmedia.datastore.db.types.Subscriber;
@@ -31,6 +34,8 @@ public abstract class DataStore {
 	private boolean writeStatsToDatastore = true;
 
 	protected volatile boolean available = false;
+	
+	protected static Logger logger = LoggerFactory.getLogger(DataStore.class);
 
 
 	public abstract String save(Broadcast broadcast);
@@ -318,6 +323,7 @@ public abstract class DataStore {
 
 		return result;
 	}
+
   
 	
 	/**
@@ -593,6 +599,19 @@ public abstract class DataStore {
 			broadcast.setAbsoluteStartTimeMs(newBroadcast.getAbsoluteStartTimeMs());
 		}
 
+		if (newBroadcast.getPlayListItemList() != null) {
+			broadcast.setPlayListItemList(newBroadcast.getPlayListItemList());
+		}
+		
+		if (newBroadcast.getPlayListStatus() != null) {
+			broadcast.setPlayListStatus(newBroadcast.getPlayListStatus());
+		}
+		
+		if (newBroadcast.getEndPointList() != null) {
+			broadcast.setEndPointList(newBroadcast.getEndPointList());
+		}
+		
+		broadcast.setCurrentPlayIndex(newBroadcast.getCurrentPlayIndex());
 		broadcast.setReceivedBytes(newBroadcast.getReceivedBytes());
 		broadcast.setDuration(newBroadcast.getDuration());
 		broadcast.setBitrate(newBroadcast.getBitrate());
@@ -848,35 +867,6 @@ public abstract class DataStore {
 	 * @return boolean - success 
 	 */
 	public abstract boolean addSubTrack(String mainTrackId, String subTrackId);
-
-
-	/**
-	 * Creates new Playlist	
-	 * @param playlist - Playlist object	
-	 * @return boolean - success 	
-	 */
-	public abstract boolean createPlaylist(Playlist playlist);
-
-	/**
-	 * Get the Playlist by playlistId	
-	 * @param playlistId - playlist id for Playlist	
-	 * @return Playlist - if exist else null 	
-	 */
-	public abstract Playlist getPlaylist(String playlistId);
-
-	/**
-	 * Deletes a Playlist	
-	 * @param playlistId - Playlist object	
-	 * @return boolean - success 	
-	 */
-	public abstract boolean deletePlaylist(String playlistId);
-
-	/**
-	 * Edits previously saved Playlist	
-	 * @param playlist - Playlist 	
-	 * @return true if successfully edited, false if not	
-	 */
-	public abstract boolean editPlaylist(String playlistId, Playlist playlist);
 
 	/**
 	 * Resets the broadcasts in the database. 

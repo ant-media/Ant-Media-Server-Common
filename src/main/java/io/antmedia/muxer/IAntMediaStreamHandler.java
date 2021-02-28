@@ -2,12 +2,16 @@ package io.antmedia.muxer;
 
 import java.io.File;
 
-import org.bytedeco.ffmpeg.avcodec.AVPacket;
-import org.bytedeco.ffmpeg.avformat.AVFormatContext;
-
 public interface IAntMediaStreamHandler {
 	
 	public static final String VERTX_BEAN_NAME = "vertxCore";
+	
+	public static final String BROADCAST_STATUS_CREATED = "created";
+	public static final String BROADCAST_STATUS_BROADCASTING = "broadcasting";
+	public static final String BROADCAST_STATUS_FINISHED = "finished";
+	public static final String BROADCAST_STATUS_PREPARING = "preparing";
+	public static final String BROADCAST_STATUS_ERROR = "error";
+	public static final String BROADCAST_STATUS_FAILED = "failed";
 	
 	/**
 	 * Called by some muxer like MP4Muxer
@@ -60,4 +64,10 @@ public interface IAntMediaStreamHandler {
      * @param inputFormatContext, pkt, streamId
      */
 	public boolean isValidStreamParameters(int width, int height, int fps, int bitrate, String streamId);
+	
+	/**
+	 * 
+	 * @return true if server is shutting down
+	 */
+	public boolean isServerShuttingDown();
 }

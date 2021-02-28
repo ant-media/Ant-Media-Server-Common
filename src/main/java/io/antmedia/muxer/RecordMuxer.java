@@ -1,6 +1,7 @@
 package io.antmedia.muxer;
 
 
+import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_OPUS;
 import static org.bytedeco.ffmpeg.global.avcodec.AV_PKT_FLAG_KEY;
 import static org.bytedeco.ffmpeg.global.avcodec.av_bsf_free;
 import static org.bytedeco.ffmpeg.global.avcodec.av_bsf_receive_packet;
@@ -9,11 +10,11 @@ import static org.bytedeco.ffmpeg.global.avcodec.av_init_packet;
 import static org.bytedeco.ffmpeg.global.avcodec.av_packet_free;
 import static org.bytedeco.ffmpeg.global.avcodec.av_packet_ref;
 import static org.bytedeco.ffmpeg.global.avcodec.av_packet_unref;
-import static org.bytedeco.ffmpeg.global.avcodec.*;
+import static org.bytedeco.ffmpeg.global.avcodec.avcodec_parameters_copy;
 import static org.bytedeco.ffmpeg.global.avcodec.avcodec_parameters_from_context;
 import static org.bytedeco.ffmpeg.global.avformat.AVFMT_NOFILE;
 import static org.bytedeco.ffmpeg.global.avformat.AVIO_FLAG_WRITE;
-import static org.bytedeco.ffmpeg.global.avformat.*;
+import static org.bytedeco.ffmpeg.global.avformat.av_write_frame;
 import static org.bytedeco.ffmpeg.global.avformat.av_write_trailer;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_alloc_output_context2;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_close_input;
@@ -107,6 +108,11 @@ public abstract class RecordMuxer extends Muxer {
 	}
 
 	protected int[] SUPPORTED_CODECS;
+	private long firstAudioPts = -1;
+	private long firstVideoPts = -1;
+	private long firstAudioDts = -1;
+	private long firstVideoDts = -1;
+
 
 	public boolean isCodecSupported(int codecId) {
 		for (int i=0; i< SUPPORTED_CODECS.length; i++) {
@@ -155,6 +161,28 @@ public abstract class RecordMuxer extends Muxer {
 			outStream.codecpar().format(AV_PIX_FMT_YUV420P);
 			outStream.codecpar().codec_tag(0);
 			//outStream.time_base(timebase);
+			
+			AVRational timeBase = new AVRational();
+			timeBase.num(1).den(1000);
+			codecTimeBaseMap.put(streamIndex, timeBase);
+			result = true;
+		}
+
+		return result;
+	}
+	
+	public boolean addAudioStream(int sampleRate, int channelLayout, int codecId, int streamIndex) {
+		boolean result = false;
+		AVFormatContext outputContext = getOutputFormatContext();
+		if (outputContext != null && isCodecSupported(codecId))
+		{
+			registeredStreamIndexList.add(streamIndex);
+			AVStream outStream = avformat_new_stream(outputContext, null);
+			outStream.codecpar().sample_rate(sampleRate);
+			outStream.codecpar().channel_layout(channelLayout);
+			outStream.codecpar().codec_id(codecId);
+			outStream.codecpar().codec_type(AVMEDIA_TYPE_AUDIO);
+			outStream.codecpar().codec_tag(0);
 			
 			AVRational timeBase = new AVRational();
 			timeBase.num(1).den(1000);
@@ -407,7 +435,7 @@ public abstract class RecordMuxer extends Muxer {
 				ApplicationContext appCtx = context.getApplicationContext();
 				Object bean = appCtx.getBean("web.handler");
 				if (bean instanceof IAntMediaStreamHandler) {
-					((IAntMediaStreamHandler)bean).muxingFinished(streamId, f, getDuration(f), resolution);
+					((IAntMediaStreamHandler)bean).muxingFinished(streamId, f, getDurationInMs(f,streamId), resolution);
 				}
 
 				if (storageClient != null) {
@@ -448,7 +476,7 @@ public abstract class RecordMuxer extends Muxer {
 		logger.info("{} is ready", file.getName());
 	}
 	
-	public long getDuration(File f) {
+	public static long getDurationInMs(File f, String streamId) {
 		AVFormatContext inputFormatContext = avformat.avformat_alloc_context();
 		int ret;
 		if (avformat_open_input(inputFormatContext, f.getAbsolutePath(), null, (AVDictionary)null) < 0) {
@@ -459,7 +487,7 @@ public abstract class RecordMuxer extends Muxer {
 
 		ret = avformat_find_stream_info(inputFormatContext, (AVDictionary)null);
 		if (ret < 0) {
-			logger.info("Could not find stream informatio for stream: {}", streamId);
+			logger.info("Could not find stream information for stream: {}", streamId);
 			avformat_close_input(inputFormatContext);
 			return -1L;
 		}
@@ -623,9 +651,12 @@ public abstract class RecordMuxer extends Muxer {
 
 		if (codecType == AVMEDIA_TYPE_AUDIO) 
 		{
-
-			pkt.pts(av_rescale_q_rnd(pkt.pts(), inputTimebase, outputTimebase, AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
-			pkt.dts(av_rescale_q_rnd(pkt.dts(), inputTimebase, outputTimebase, AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
+			if(firstAudioPts == -1 || firstAudioDts == -1) {
+				firstAudioPts = pkt.pts();
+				firstAudioDts = pkt.dts();
+			}
+			pkt.pts(av_rescale_q_rnd(pkt.pts() - firstAudioPts, inputTimebase, outputTimebase, AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
+			pkt.dts(av_rescale_q_rnd(pkt.dts() - firstAudioDts , inputTimebase, outputTimebase, AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
 			
 			
 			int ret = av_packet_ref(tmpPacket , pkt);
@@ -639,10 +670,14 @@ public abstract class RecordMuxer extends Muxer {
 		}
 		else if (codecType == AVMEDIA_TYPE_VIDEO) 
 		{
+			if(firstVideoPts == -1 || firstVideoDts == -1) {
+				firstVideoPts = pkt.pts();
+				firstVideoDts = pkt.dts();
+			}
 			// we don't set startTimeInVideoTimebase here because we only start with key frame and we drop all frames 
 			// until the first key frame
-			pkt.pts(av_rescale_q_rnd(pkt.pts(), inputTimebase, outputTimebase, AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
-			pkt.dts(av_rescale_q_rnd(pkt.dts(), inputTimebase, outputTimebase, AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
+			pkt.pts(av_rescale_q_rnd(pkt.pts() - firstVideoPts , inputTimebase, outputTimebase, AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
+			pkt.dts(av_rescale_q_rnd(pkt.dts() - firstVideoDts, inputTimebase, outputTimebase, AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
 			
 			
 			int ret = av_packet_ref(tmpPacket , pkt);
