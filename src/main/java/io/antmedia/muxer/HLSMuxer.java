@@ -67,6 +67,8 @@ import org.red5.server.api.scope.IScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.antmedia.storage.StorageClient;
+import io.antmedia.storage.StorageClient.FileType;
 import io.vertx.core.Vertx;
 
 
@@ -98,13 +100,17 @@ public class HLSMuxer extends Muxer  {
 	private int audioIndex;
 	private int videoIndex;
 	private String hlsFlags;
+	private String streamId;
 	
 	private Map<Integer, AVRational> codecTimeBaseMap = new HashMap<>();
 	private AVPacket videoPkt;
+	protected StorageClient storageClient = null;
+	//private boolean uploadProcessStarted = false;
 
 
-	public HLSMuxer(Vertx vertx, String hlsListSize, String hlsTime, String hlsPlayListType, String hlsFlags) {
+	public HLSMuxer(Vertx vertx, StorageClient storageClient, String hlsListSize, String hlsTime, String hlsPlayListType, String hlsFlags) {
 		super(vertx);
+		this.storageClient = storageClient;
 		extension = ".m3u8";
 		format = "hls";
 
@@ -139,6 +145,8 @@ public class HLSMuxer extends Muxer  {
 	public void init(IScope scope, String name, int resolutionHeight) {
 		if (!isInitialized) {
 			super.init(scope, name, resolutionHeight);
+			
+			streamId = name;
 
 			options.put("hls_list_size", hlsListSize);
 			options.put("hls_time", hlsTime);
@@ -374,8 +382,63 @@ public class HLSMuxer extends Muxer  {
 				}
 			});
 		}
-
+		
 		isRecording = false;	
+		
+		if (vertx != null && storageClient != null && !deleteFileOnExit) {
+			
+			logger.info("Storage client is available saving {} to storage", file.getName());
+				
+			vertx.setTimer(Integer.parseInt(hlsTime) * Integer.parseInt(hlsListSize) * 1000, l -> {
+				logger.info("Uploading HLS files on exit");
+				
+				String streamIdWithExtension = getFile().getName();
+				String streamIdWithAdaptive = streamId + "_adaptive.m3u8";
+				String streamFolderName = streamId;
+				String tmpStreamName = streamId;
+				
+				if (storageClient.fileExist(FileType.TYPE_STREAM.getValue() + "/" + streamFolderName + "/" + streamIdWithExtension ) || storageClient.fileExist(FileType.TYPE_STREAM.getValue() + "/" + streamFolderName + "/" + streamIdWithAdaptive)  ) { 
+					
+					int i = 0;
+					do {	
+						i++;
+						streamFolderName = tmpStreamName.concat("_"+ i);
+					} while (storageClient.fileExist(FileType.TYPE_STREAM.getValue() + "/" + streamFolderName  + "/"  + streamIdWithExtension) || storageClient.fileExist(FileType.TYPE_STREAM.getValue() + "/" + streamFolderName + "/" + streamIdWithAdaptive));
+				}
+				
+				final String filenameWithoutExtension = file.getName().substring(0, file.getName().lastIndexOf(extension));
+				
+				//TODO Add check for multi upload process. Case: Send RTMP with Adaptive
+				//uploadProcessStarted = true;
+				
+				File[] files = file.getParentFile().listFiles(new FilenameFilter() {
+					@Override
+					public boolean accept(File dir, String name) {
+						return name.contains(filenameWithoutExtension) && name.endsWith(".ts");
+					}
+				});
+
+				if (files != null) //&& !uploadProcessStarted 
+				{
+					for (int i = 0; i < files.length; i++) {
+						if (!files[i].exists()) {
+							continue;
+						}
+						saveToStorage(files[i],streamFolderName);
+					}
+				}
+				if (file.exists() ) { //&& !uploadProcessStarted
+					saveToStorage(file,streamFolderName);
+				}
+			});
+		}
+	}
+	
+	public void saveToStorage(File fileToUpload, String streamFolderName) {
+		// Check file exist in S3 and change file names. In this way, new file is created after the file name changed.
+		vertx.setTimer(1000, l2 -> {			
+			storageClient.save(FileType.TYPE_STREAM.getValue() + "/"+streamFolderName+"/" + fileToUpload.getName(), fileToUpload);
+		});
 	}
 
 
