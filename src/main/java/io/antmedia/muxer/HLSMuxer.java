@@ -386,57 +386,70 @@ public class HLSMuxer extends Muxer  {
 		isRecording = false;	
 		
 		if (vertx != null && storageClient != null && !deleteFileOnExit) {
-			
 			logger.info("Storage client is available saving {} to storage", file.getName());
-				
 			vertx.setTimer(Integer.parseInt(hlsTime) * Integer.parseInt(hlsListSize) * 1000, l -> {
-				logger.info("Uploading HLS files on exit");
 				
-				String streamIdWithExtension = getFile().getName();
-				String streamIdWithAdaptive = streamId + "_adaptive.m3u8";
-				String streamFolderName = streamId;
-				String tmpStreamName = streamId;
-				
-				if (storageClient.fileExist(FileType.TYPE_STREAM.getValue() + "/" + streamFolderName + "/" + streamIdWithExtension ) || storageClient.fileExist(FileType.TYPE_STREAM.getValue() + "/" + streamFolderName + "/" + streamIdWithAdaptive)  ) { 
+				vertx.executeBlocking(r->{
 					
-					int i = 0;
-					do {	
-						i++;
-						streamFolderName = tmpStreamName.concat("_"+ i);
-					} while (storageClient.fileExist(FileType.TYPE_STREAM.getValue() + "/" + streamFolderName  + "/"  + streamIdWithExtension) || storageClient.fileExist(FileType.TYPE_STREAM.getValue() + "/" + streamFolderName + "/" + streamIdWithAdaptive));
-				}
-				
-				final String filenameWithoutExtension = file.getName().substring(0, file.getName().lastIndexOf(extension));
-				
-				//TODO Add check for multi upload process. Case: Send RTMP with Adaptive
-				//uploadProcessStarted = true;
-				
-				File[] files = file.getParentFile().listFiles(new FilenameFilter() {
-					@Override
-					public boolean accept(File dir, String name) {
-						return name.contains(filenameWithoutExtension) && name.endsWith(".ts");
-					}
-				});
+					try {
+						logger.info("Uploading HLS files on exit");
 
-				if (files != null) //&& !uploadProcessStarted 
-				{
-					for (int i = 0; i < files.length; i++) {
-						if (!files[i].exists()) {
-							continue;
+						String streamIdWithExtension = streamId + ".m3u8";
+						String streamIdWithAdaptive = streamId + "_adaptive.m3u8";
+						String streamFolderName = streamId;
+						String tmpStreamName = streamId;
+
+						if (storageClient.fileExist(FileType.TYPE_STREAM.getValue() + "/" + streamFolderName + "/" + streamIdWithExtension ) || storageClient.fileExist(FileType.TYPE_STREAM.getValue() + "/" + streamFolderName + "/" + streamIdWithAdaptive)  ) { 
+							int i = 0;
+							do {	
+								i++;
+								streamFolderName = tmpStreamName.concat("_"+ i);
+							} while (storageClient.fileExist(FileType.TYPE_STREAM.getValue() + "/" + streamFolderName  + "/"  + streamIdWithExtension) || storageClient.fileExist(FileType.TYPE_STREAM.getValue() + "/" + streamFolderName + "/" + streamIdWithAdaptive));
 						}
-						saveToStorage(files[i],streamFolderName);
+
+						String streamIdwithResolution = file.getName().substring(0, file.getName().lastIndexOf(extension));
+
+						//It's necessarry for RTMP ingest
+						if( file.getName().substring(0, file.getName().lastIndexOf(extension)).equals(streamId)) {
+							streamIdwithResolution= streamIdwithResolution+"_0p";
+						}
+
+						final String filenameWithoutExtension = streamIdwithResolution;
+
+						File[] files  = file.getParentFile().listFiles(new FilenameFilter() {
+							@Override
+							public boolean accept(File dir, String name) {
+								return name.contains(filenameWithoutExtension) && name.endsWith(".ts"); 
+							}
+						});
+
+						if (files != null)
+						{
+							for (int i = 0; i < files.length; i++) {
+								if (!files[i].exists()) {
+									continue;
+								}
+								saveToStorage(files[i],streamFolderName);
+							}
+						}
+
+						if (file.exists() ) { 
+							saveToStorage(file,streamFolderName);
+						}
+					} catch (Exception e) {
+						logger.error(e.getMessage());
 					}
-				}
-				if (file.exists() ) { //&& !uploadProcessStarted
-					saveToStorage(file,streamFolderName);
-				}
+				}, r->{});
+
 			});
+			
 		}
+		
 	}
 	
 	public void saveToStorage(File fileToUpload, String streamFolderName) {
 		// Check file exist in S3 and change file names. In this way, new file is created after the file name changed.
-		vertx.setTimer(1000, l2 -> {			
+		vertx.setTimer(1000, l3 -> {
 			storageClient.save(FileType.TYPE_STREAM.getValue() + "/"+streamFolderName+"/" + fileToUpload.getName(), fileToUpload);
 		});
 	}
