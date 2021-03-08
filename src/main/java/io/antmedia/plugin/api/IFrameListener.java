@@ -10,5 +10,6 @@ public interface IFrameListener {
 	void writeTrailer();
 	void setVideoCodecParameter(String streamId, AVCodecParameters videoCodecParameters);
 	void setAudioCodecParameter(String streamId, AVCodecParameters audioCodecParameters);
+	void start();
 
 }

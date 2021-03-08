@@ -1704,6 +1704,14 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		listener.setAudioCodecParameter(streamId, audioCodecParameters);
 		packetFeeder.addListener(listener);
 	}
+	
+	public void setVideoCodecParameter(AVCodecParameters videoCodecParameters) {
+		this.videoCodecParameters = videoCodecParameters;
+	}
+
+	public void setAudioCodecParameter(AVCodecParameters audioCodecParameters) {
+		this.audioCodecParameters = audioCodecParameters;
+	}
 }
 
 
