@@ -98,6 +98,9 @@ public class HLSMuxer extends Muxer  {
 	private int audioIndex;
 	private int videoIndex;
 	private String hlsFlags;
+
+	private long previous_dts = -1;
+	private long previous_pts = -1;
 	
 	private Map<Integer, AVRational> codecTimeBaseMap = new HashMap<>();
 	private AVPacket videoPkt;
@@ -232,14 +235,21 @@ public class HLSMuxer extends Muxer  {
 			partialTotalSize = 0;
 			bitrateReferenceTime = currentTime;
 		}
-		
+		if(this.previous_dts >= dts || this.previous_pts >= pts){
+			logger.info("HLS Muxer pre-values DTS = " + previous_dts + " PTS = " + previous_pts + " Packet toString = " + pkt.toString());
+			logger.info("HLS Muxer after-values DTS = " + dts + " PTS = " + pts);
+		}
 		int ret;
-		logger.info("HLS Muxer pre-values DTS = " + pkt.dts() + " PTS = " + pkt.pts() + " Packet toString = " + pkt.toString());
 		pkt.pts(av_rescale_q_rnd(pkt.pts(), inputTimebase, outputTimebase, AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
 		pkt.dts(av_rescale_q_rnd(pkt.dts(), inputTimebase, outputTimebase, AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
 		pkt.duration(av_rescale_q(pkt.duration(), inputTimebase, outputTimebase));
 		pkt.pos(-1);
-		logger.info("HLS Muxer after-values DTS = " + pkt.dts() + " PTS = " + pkt.pts());
+		if(this.previous_dts >= dts || this.previous_pts >= pts){
+			logger.info("After rounding HLS Muxer pre-values DTS = " + pkt.dts() + " PTS = " + pkt.pts() + " Packet toString = " + pkt.toString());
+			logger.info("HLS Muxer first initialization = " + dts + " PTS = " + pts);
+		}
+		this.previous_dts = dts;
+		this.previous_pts = pts;
 
 		if (codecType ==  AVMEDIA_TYPE_VIDEO) 
 		{
