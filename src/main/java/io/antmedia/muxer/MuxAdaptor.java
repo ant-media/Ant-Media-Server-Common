@@ -244,7 +244,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		if (applicationContext.containsBean(AppSettings.BEAN_NAME)) {
 			AppSettings appSettings = (AppSettings) applicationContext.getBean(AppSettings.BEAN_NAME);
 			List<EncoderSettings> list = appSettings.getEncoderSettings();
-			if ((list != null && !list.isEmpty()) || appSettings.isWebRTCEnabled()) {
+			if ((list != null && !list.isEmpty()) || appSettings.isWebRTCEnabled() || appSettings.isForceDecoding()) {
 				/*
 				 * enable encoder adaptor if webrtc enabled because we're supporting forwarding video to end user
 				 * without transcoding. We need encoder adaptor because we need to transcode audio
@@ -1711,6 +1711,14 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 	public void setAudioCodecParameter(AVCodecParameters audioCodecParameters) {
 		this.audioCodecParameters = audioCodecParameters;
+	}
+
+	public void setVideoStreamIndex(int videoStreamIndex) {
+		this.videoStreamIndex = videoStreamIndex;
+	}
+
+	public void setAudioStreamIndex(int audioStreamIndex) {
+		this.audioStreamIndex = audioStreamIndex;
 	}
 }
 

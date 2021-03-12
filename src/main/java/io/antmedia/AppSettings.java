@@ -257,6 +257,8 @@ public class AppSettings {
 	private static final String SETTINGS_USE_TIMELINE_DASH_MUXING = "settings.dash.useTimeline";
 
 	private static final String SETTINGS_DASH_HTTP_STREAMING = "settings.dash.httpStreaming";
+	
+	private static final String SETTINGS_FORCE_DECODING = "settings.forceDecoding";
 
 	@JsonIgnore
 	@NotSaved
@@ -1101,6 +1103,13 @@ public class AppSettings {
 	 */
 	@Value( "${"+SETTINGS_DASH_HTTP_STREAMING+":true}" )
 	private boolean dashHttpStreaming;
+	
+	/**
+	 * Force stream decoding even if there is no adaptive setting
+	 */
+	@Value("${" + SETTINGS_FORCE_DECODING+ ":true}")
+	private boolean forceDecoding;
+	
 
 	public boolean isWriteStatsToDatastore() {
 		return writeStatsToDatastore;
@@ -2224,6 +2233,14 @@ public class AppSettings {
 
 	public void setDashHttpStreaming(boolean dashHttpStreaming) {
 		this.dashHttpStreaming = dashHttpStreaming;
+	}
+
+	public boolean isForceDecoding() {
+		return forceDecoding;
+	}
+
+	public void setForceDecoding(boolean forceDecoding) {
+		this.forceDecoding = forceDecoding;
 	}
 
 
