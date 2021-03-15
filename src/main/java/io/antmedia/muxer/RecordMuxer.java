@@ -65,6 +65,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 
+import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.storage.StorageClient;
 import io.antmedia.storage.StorageClient.FileType;
 import io.vertx.core.Vertx;
@@ -86,6 +87,8 @@ public abstract class RecordMuxer extends Muxer {
 
 	protected AVPacket videoPkt;
 	protected int rotation;
+	
+	private String subFolder = null;
 
 	/**
 	 * By default first video key frame should be checked
@@ -102,7 +105,7 @@ public abstract class RecordMuxer extends Muxer {
 	protected boolean dynamic = false;
 
 
-	public RecordMuxer(StorageClient storageClient, Vertx vertx) {
+	public RecordMuxer(StorageClient storageClient, Vertx vertx ) {
 		super(vertx);
 		this.storageClient = storageClient;
 	}
@@ -456,8 +459,12 @@ public abstract class RecordMuxer extends Muxer {
 		vertx.setTimer(1000, l2 -> {
 			// Check file exist in S3 and change file names. In this way, new file is created after the file name changed.
 
+			if(subFolder != null) {
+				subFolder= "/"+subFolder;
+			}
+			
 			String fileName = getFile().getName();
-			if (storageClient.fileExist(FileType.TYPE_STREAM.getValue() + "/" + fileName)) {
+			if (storageClient.fileExist(FileType.TYPE_STREAM.getValue() + subFolder + "/" + fileName)) {
 
 				String tmpName =  fileName;
 
@@ -465,10 +472,10 @@ public abstract class RecordMuxer extends Muxer {
 				do {
 					i++;
 					fileName = tmpName.replace(".", "_"+ i +".");
-				} while (storageClient.fileExist(FileType.TYPE_STREAM.getValue() + "/" + fileName));
+				} while (storageClient.fileExist(FileType.TYPE_STREAM.getValue() + subFolder + "/" + fileName));
 			}
 
-			storageClient.save(FileType.TYPE_STREAM.getValue() + "/" + fileName, fileToUpload);
+			storageClient.save(FileType.TYPE_STREAM.getValue()  + subFolder + "/" + fileName, fileToUpload);
 		});
 	}
 

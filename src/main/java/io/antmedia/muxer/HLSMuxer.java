@@ -105,7 +105,7 @@ public class HLSMuxer extends Muxer  {
 	private Map<Integer, AVRational> codecTimeBaseMap = new HashMap<>();
 	private AVPacket videoPkt;
 	protected StorageClient storageClient = null;
-	//private boolean uploadProcessStarted = false;
+	private String subFolder = null;
 
 
 	public HLSMuxer(Vertx vertx, StorageClient storageClient, String hlsListSize, String hlsTime, String hlsPlayListType, String hlsFlags) {
@@ -398,8 +398,12 @@ public class HLSMuxer extends Muxer  {
 						String streamIdWithAdaptive = streamId + "_adaptive.m3u8";
 						String streamFolderName = streamId;
 						String tmpStreamName = streamId;
+						
+						if(subFolder != null) {
+							streamFolderName = subFolder;
+						}
 
-						if (storageClient.fileExist(FileType.TYPE_STREAM.getValue() + "/" + streamFolderName + "/" + streamIdWithExtension ) || storageClient.fileExist(FileType.TYPE_STREAM.getValue() + "/" + streamFolderName + "/" + streamIdWithAdaptive)  ) { 
+						if (storageClient.fileExist(FileType.TYPE_STREAM.getValue() +"/" + streamFolderName + "/" + streamIdWithExtension ) || storageClient.fileExist(FileType.TYPE_STREAM.getValue() + "/" + streamFolderName + "/" + streamIdWithAdaptive)  ) { 
 							int i = 0;
 							do {	
 								i++;
