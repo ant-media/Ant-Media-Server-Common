@@ -725,7 +725,9 @@ public class AppSettings {
 	@Value( "${" + SETTINGS_ENCODING_VP8_THREAD_COUNT +":1}")
 	private int vp8EncoderThreadCount;
 	
-	
+	/**
+	 * Height of the preview that will be generated
+	 */
 	@Value( "${" + SETTINGS_PREVIEW_HEIGHT +":480}")
 	private int previewHeight;
 	
