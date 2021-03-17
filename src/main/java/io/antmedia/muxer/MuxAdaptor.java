@@ -68,6 +68,7 @@ import io.antmedia.muxer.parser.AACConfigParser.AudioObjectTypes;
 import io.antmedia.muxer.parser.SpsParser;
 import io.antmedia.plugin.PacketFeeder;
 import io.antmedia.plugin.api.IPacketListener;
+import io.antmedia.plugin.api.StreamParametersInfo;
 import io.antmedia.storage.StorageClient;
 import io.vertx.core.Vertx;
 import net.sf.ehcache.util.concurrent.ConcurrentHashMap;
@@ -1700,8 +1701,15 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	}
 
 	public void addPacketListener(IPacketListener listener) {
-		listener.setVideoCodecParameter(streamId, videoCodecParameters);
-		listener.setAudioCodecParameter(streamId, audioCodecParameters);
+		StreamParametersInfo videoInfo = new StreamParametersInfo();
+		videoInfo.codecParameters = getVideoCodecParameters();
+		videoInfo.timeBase = getVideoTimeBase();
+		StreamParametersInfo audioInfo = new StreamParametersInfo();
+		audioInfo.codecParameters = getAudioCodecParameters();
+		audioInfo.timeBase = getAudioTimeBase();
+		
+		listener.setVideoStreamInfo(streamId, videoInfo);
+		listener.setAudioStreamInfo(streamId, audioInfo);
 		packetFeeder.addListener(listener);
 	}
 	
@@ -1719,6 +1727,14 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 	public void setAudioStreamIndex(int audioStreamIndex) {
 		this.audioStreamIndex = audioStreamIndex;
+	}
+
+	public AVRational getVideoTimeBase() {
+		return TIME_BASE_FOR_MS;
+	}
+	
+	public AVRational getAudioTimeBase() {
+		return TIME_BASE_FOR_MS;
 	}
 }
 
