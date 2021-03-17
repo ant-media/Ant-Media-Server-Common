@@ -1109,7 +1109,7 @@ public class AppSettings {
 	/**
 	 * Force stream decoding even if there is no adaptive setting
 	 */
-	@Value("${" + SETTINGS_FORCE_DECODING+ ":true}")
+	@Value("${" + SETTINGS_FORCE_DECODING+ ":false}")
 	private boolean forceDecoding;
 	
 
