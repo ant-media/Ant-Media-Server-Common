@@ -335,6 +335,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 		this.streamId = streamId;
 		this.scope = scope;
+		packetFeeder = new PacketFeeder(streamId);
 
 		getDataStore();
 		enableSettings();
@@ -343,7 +344,6 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		enableWebMSetting();
 		initVertx();
 
-		packetFeeder = new PacketFeeder(streamId);
 		
 		if (mp4MuxingEnabled) {
 			addMp4Muxer();
