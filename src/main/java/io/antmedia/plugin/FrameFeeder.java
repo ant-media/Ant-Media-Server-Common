@@ -23,7 +23,10 @@ public class FrameFeeder {
 	public AVFrame onVideoFrame(AVFrame frame) {
 		AVFrame processedFrame = frame;
 		for (IFrameListener iFrameListener : listeners) {
-			processedFrame = iFrameListener.onVideoFrame(streamId, frame);
+			processedFrame = iFrameListener.onVideoFrame(streamId, processedFrame);
+			if(processedFrame == null) {
+				break;
+			}
 		}
 
 		return processedFrame;
@@ -32,8 +35,12 @@ public class FrameFeeder {
 	public AVFrame onAudioFrame(AVFrame frame) {
 		AVFrame processedFrame = frame;
 		for (IFrameListener iFrameListener : listeners) {
-			processedFrame = iFrameListener.onAudioFrame(streamId, frame);
+			processedFrame = iFrameListener.onAudioFrame(streamId, processedFrame);
+			if(processedFrame == null) {
+				break;
+			}
 		}
+
 		return processedFrame;
 	}
 
