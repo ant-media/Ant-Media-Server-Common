@@ -81,8 +81,7 @@ public class DefaultStreamFilenameGenerator implements IStreamFilenameGenerator 
     public String generateFilename(IScope scope, String name, String extension, GenerationType type, String subFolder) {
         String result;
         if(subFolder != null) {
-            subFolder= subFolder.replace(":","");
-            subFolder= subFolder.replace("/","");
+            subFolder= subFolder.replace("..","");
             result = getStreamDirectory(scope) + "/" + subFolder + "/" + name;
         }
         else
