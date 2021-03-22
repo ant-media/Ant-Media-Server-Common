@@ -827,7 +827,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 					long totalTime = System.currentTimeMillis() - checkStreamsStartTime;
 					int elapsedFrameTimeStamp = lastFrameTimestamp - firstReceivedFrameTimestamp;
 										
-					if ( (totalTime >= (2* maxAnalyzeDurationMS)) || (elapsedFrameTimeStamp >= maxAnalyzeDurationMS)) {
+					if (totalTime >= (2* maxAnalyzeDurationMS)) {
 						logger.error("Total max time({}) is spent to determine video and audio existence for stream:{}. It's skipped waiting", (2*maxAnalyzeDurationMS), streamId);
 						logger.info("Streams for {} enableVideo:{} enableAudio:{} total spend time: {} elapsed frame timestamp:{} stop request exists: {}", streamId, enableVideo, enableAudio, totalTime, elapsedFrameTimeStamp, stopRequestExist);
 						
