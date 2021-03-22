@@ -257,6 +257,10 @@ public class AppSettings {
 	private static final String SETTINGS_USE_TIMELINE_DASH_MUXING = "settings.dash.useTimeline";
 
 	private static final String SETTINGS_DASH_HTTP_STREAMING = "settings.dash.httpStreaming";
+	
+	private static final String SETTINGS_S3_STREAMS_FOLDER_PATH = "settings.s3.streams.folder.path";
+	
+	private static final String SETTINGS_S3_PREVIEWS_FOLDER_PATH = "settings.s3.previews.folder.path";
 
 	@JsonIgnore
 	@NotSaved
@@ -1103,6 +1107,26 @@ public class AppSettings {
 	 */
 	@Value( "${"+SETTINGS_DASH_HTTP_STREAMING+":true}" )
 	private boolean dashHttpStreaming;
+	
+	/**
+	 * Use http streaming in Low Latency Dash. 
+	 * If it's true, it sends files through http
+	 * If it's false, it writes files to disk directly
+	 * 
+	 * In order to have Low Latency http streaming should be used
+	 */
+	@Value( "${"+SETTINGS_S3_STREAMS_FOLDER_PATH+":null}" )
+	private String  s3StreamsFolderPath;
+
+	/**
+	 * Use http streaming in Low Latency Dash. 
+	 * If it's true, it sends files through http
+	 * If it's false, it writes files to disk directly
+	 * 
+	 * In order to have Low Latency http streaming should be used
+	 */
+	@Value( "${"+SETTINGS_S3_PREVIEWS_FOLDER_PATH+":null}" )
+	private String  s3PreviewsFolderPath;
 
 	public boolean isWriteStatsToDatastore() {
 		return writeStatsToDatastore;
@@ -2227,10 +2251,21 @@ public class AppSettings {
 	public void setDashHttpStreaming(boolean dashHttpStreaming) {
 		this.dashHttpStreaming = dashHttpStreaming;
 	}
-
-
 	
+	public String getS3StreamsFolderPath() {
+		return s3StreamsFolderPath;
+	}
 
+	public void setS3StreamsFolderPath(String s3StreamsFolderPath) {
+		this.s3StreamsFolderPath = s3StreamsFolderPath;
+	}
+
+	public String getS3PreviewsFolderPath() {
+		return s3PreviewsFolderPath;
+	}
+
+	public void setS3PreviewsFolderPath(String s3PreviewsFolderPath) {
+		this.s3PreviewsFolderPath = s3PreviewsFolderPath;
+	}
 	
-
 }

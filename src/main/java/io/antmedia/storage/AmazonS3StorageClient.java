@@ -59,9 +59,9 @@ public class AmazonS3StorageClient extends StorageClient {
 	}
 
 	
-	public void delete(String fileName, FileType type) {
+	public void delete(String fileName, String type) {
 		AmazonS3 s3 = getAmazonS3();
-		s3.deleteObject(getStorageName(), type.getValue() + "/" + fileName);
+		s3.deleteObject(getStorageName(), type + "/" + fileName);
 		
 	}
 	
@@ -74,8 +74,8 @@ public class AmazonS3StorageClient extends StorageClient {
 		return getAmazonS3().doesObjectExist(getStorageName(), key);
 	}
 	
-	public void save(final File file, FileType type) {
-		save(type.getValue() + "/" + file.getName(), file);
+	public void save(final File file, String type) {
+		save(type + "/" + file.getName(), file);
 	}
 	
 	public void save(String key, File file)

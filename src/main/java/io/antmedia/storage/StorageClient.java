@@ -41,7 +41,7 @@ public abstract class StorageClient {
 	 * @param fileName
 	 * @param type
 	 */
-	public abstract void delete(String fileName, FileType type);
+	public abstract void delete(String fileName, String type);
 	
 	/**
 	 * Save file to storage and delete the local file
@@ -51,7 +51,7 @@ public abstract class StorageClient {
 	 * @param type
 	 * type of the file
 	 */
-	public abstract void save(final File file, FileType type);
+	public abstract void save(final File file, String type);
 	
 	/**
 	 * Save file to storage and delete the local file 
