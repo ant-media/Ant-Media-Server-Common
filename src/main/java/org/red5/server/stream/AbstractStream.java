@@ -32,6 +32,8 @@ import org.red5.server.api.stream.IStream;
 import org.red5.server.api.stream.IStreamAwareScopeHandler;
 import org.red5.server.api.stream.StreamState;
 import org.red5.server.net.rtmp.event.Notify;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Abstract base implementation of IStream. Contains codec information, stream name, scope, event handling, and provides stream start and stop operations.
@@ -40,6 +42,8 @@ import org.red5.server.net.rtmp.event.Notify;
  */
 public abstract class AbstractStream implements IStream {
 
+	private static final Logger log = LoggerFactory.getLogger(AbstractStream.class);
+	
     /**
      * Current state
      */
@@ -129,13 +133,20 @@ public abstract class AbstractStream implements IStream {
         }
         
         String actionOnFI = input.readString();
-        input.readDataType();
-        Map<Object, Object> readMap =  (Map<Object, Object>) input.readMap();
-        Object timeCode = readMap.get("timecode");
-        
-        if (timeCode != null) 
-        {
-        		absoluteStartTimeMs = Long.parseLong(timeCode.toString());
+        byte readDataType = input.readDataType();
+       
+        if (readDataType == DataTypes.CORE_MAP) {
+        	log.info("metadata read data type -->>>> core map");
+	        Map<Object, Object> readMap =  (Map<Object, Object>) input.readMap();
+	        Object timeCode = readMap.get("timecode");
+	        
+	        if (timeCode != null) 
+	        {
+	        		absoluteStartTimeMs = Long.parseLong(timeCode.toString());
+	        }
+        }
+        else {
+        	log.info("metadata read data type -->>>> " + readDataType);
         }
     }
     
