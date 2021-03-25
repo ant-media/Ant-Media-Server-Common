@@ -356,7 +356,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		}
 
 		for (Muxer muxer : muxerList) {
-			muxer.init(scope, streamId, 0, broadcast.getSubFolder());
+			muxer.init(scope, streamId, 0, broadcast != null ? broadcast.getSubFolder(): null);
 		}
 		getStreamHandler().muxAdaptorAdded(this);
 		return true;
@@ -1443,7 +1443,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 	private boolean prepareMuxer(Muxer muxer) {
 		boolean prepared;
-		muxer.init(scope, streamId, 0, broadcast.getSubFolder());
+		muxer.init(scope, streamId, 0, broadcast != null ? broadcast.getSubFolder(): null);
 		logger.info("prepareMuxer for stream:{} muxer:{}", streamId, muxer.getClass().getSimpleName());
 
 		if (streamSourceInputFormatContext != null) {
