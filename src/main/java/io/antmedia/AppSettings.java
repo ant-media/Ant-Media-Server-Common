@@ -1109,23 +1109,19 @@ public class AppSettings {
 	private boolean dashHttpStreaming;
 	
 	/**
-	 * Use http streaming in Low Latency Dash. 
-	 * If it's true, it sends files through http
-	 * If it's false, it writes files to disk directly
+	 * It's S3 streams MP4, WEBM  and HLS files storage name . 
+	 * It's streams by default.
 	 * 
-	 * In order to have Low Latency http streaming should be used
 	 */
-	@Value( "${"+SETTINGS_S3_STREAMS_FOLDER_PATH+":null}" )
+	@Value( "${"+SETTINGS_S3_STREAMS_FOLDER_PATH+":streams}" )
 	private String  s3StreamsFolderPath;
 
 	/**
-	 * Use http streaming in Low Latency Dash. 
-	 * If it's true, it sends files through http
-	 * If it's false, it writes files to disk directly
+	 * It's S3 stream PNG files storage name . 
+	 * It's previews by default.
 	 * 
-	 * In order to have Low Latency http streaming should be used
 	 */
-	@Value( "${"+SETTINGS_S3_PREVIEWS_FOLDER_PATH+":null}" )
+	@Value( "${"+SETTINGS_S3_PREVIEWS_FOLDER_PATH+":previews}" )
 	private String  s3PreviewsFolderPath;
 
 	public boolean isWriteStatsToDatastore() {
