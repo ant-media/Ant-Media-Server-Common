@@ -86,8 +86,8 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	protected boolean deleteDASHFilesOnExit = true;
 
 
-	protected int videoStreamIndex;
-	protected int audioStreamIndex;
+	private int videoStreamIndex;
+	private int audioStreamIndex;
 
 	protected boolean previewOverwrite = false;
 
@@ -1557,15 +1557,17 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 				try {
 					//update broadcast object
 					broadcast = getDataStore().get(broadcast.getStreamId());
-					for (Iterator iterator = broadcast.getEndPointList().iterator(); iterator.hasNext();) 
-					{
-						Endpoint endpoint = (Endpoint) iterator.next();
-						String statusUpdate = endpointStatusUpdateMap.getValueOrDefault(endpoint.getRtmpUrl(), null);
-						if (statusUpdate != null) {
-							endpoint.setStatus(statusUpdate);
-						}
-						else {
-							logger.warn("Endpoint is not found to update its status to {} for rtmp url:{}", statusUpdate, endpoint.getRtmpUrl());
+					if (broadcast != null) {
+						for (Iterator iterator = broadcast.getEndPointList().iterator(); iterator.hasNext();) 
+						{
+							Endpoint endpoint = (Endpoint) iterator.next();
+							String statusUpdate = endpointStatusUpdateMap.getValueOrDefault(endpoint.getRtmpUrl(), null);
+							if (statusUpdate != null) {
+								endpoint.setStatus(statusUpdate);
+							}
+							else {
+								logger.warn("Endpoint is not found to update its status to {} for rtmp url:{}", statusUpdate, endpoint.getRtmpUrl());
+							}
 						}
 					}
 					endpointStatusUpdateMap.clear();
@@ -1689,6 +1691,26 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	
 	public LinkedList<PacketTime> getPacketTimeList() {
 		return packetTimeList;
+	}
+
+
+	public int getVideoStreamIndex() {
+		return videoStreamIndex;
+	}
+
+
+	public void setVideoStreamIndex(int videoStreamIndex) {
+		this.videoStreamIndex = videoStreamIndex;
+	}
+
+
+	public int getAudioStreamIndex() {
+		return audioStreamIndex;
+	}
+
+
+	public void setAudioStreamIndex(int audioStreamIndex) {
+		this.audioStreamIndex = audioStreamIndex;
 	}
 }
 
