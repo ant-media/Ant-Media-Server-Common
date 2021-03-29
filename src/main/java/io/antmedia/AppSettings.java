@@ -257,6 +257,8 @@ public class AppSettings {
 	private static final String SETTINGS_USE_TIMELINE_DASH_MUXING = "settings.dash.useTimeline";
 
 	private static final String SETTINGS_DASH_HTTP_STREAMING = "settings.dash.httpStreaming";
+	
+	private static final String SETTINGS_DASH_HTTP_ENDPOINT = "settings.dash.httpEndpoint";
 
 	@JsonIgnore
 	@NotSaved
@@ -1103,6 +1105,13 @@ public class AppSettings {
 	 */
 	@Value( "${"+SETTINGS_DASH_HTTP_STREAMING+":true}" )
 	private boolean dashHttpStreaming;
+	
+	/**
+	 * Use http endpoint  in CMAF/HLS. 
+	 * It's configurable to send any stream in HTTP Endpoint with this option
+	 */
+	@Value( "${"+SETTINGS_DASH_HTTP_ENDPOINT+":#{null}}" )
+	private String dashHttpEndpoint;
 
 	public boolean isWriteStatsToDatastore() {
 		return writeStatsToDatastore;
@@ -2228,9 +2237,11 @@ public class AppSettings {
 		this.dashHttpStreaming = dashHttpStreaming;
 	}
 
+	public String getDashHttpEndpoint() {
+		return dashHttpEndpoint;
+	}
 
-	
-
-	
-
+	public void setDashHttpEndpoint(String dashHttpEndpoint) {
+		this.dashHttpEndpoint = dashHttpEndpoint;
+	}
 }
