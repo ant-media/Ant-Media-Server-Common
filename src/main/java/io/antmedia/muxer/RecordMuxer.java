@@ -24,7 +24,7 @@ import static org.bytedeco.ffmpeg.global.avformat.avformat_new_stream;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_open_input;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_write_header;
 import static org.bytedeco.ffmpeg.global.avformat.avio_closep;
-import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_AUDIO;
+import static org.bytedeco.ffmpeg.global.avutil.*;
 import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_VIDEO;
 import static org.bytedeco.ffmpeg.global.avutil.AV_NOPTS_VALUE;
 import static org.bytedeco.ffmpeg.global.avutil.AV_PIX_FMT_YUV420P;
@@ -220,6 +220,10 @@ public abstract class RecordMuxer extends Muxer {
 			else {
 				videoIndex = outStream.index();
 			}
+			result = true;
+		}
+		else if (codecParameters.codec_type() == AVMEDIA_TYPE_DATA) {
+			//if it's data, do not add and return true
 			result = true;
 		}
 		

@@ -338,10 +338,25 @@ public abstract class Muxer {
 		return false;
 	}
 
+	/**
+	 * Add audio stream to the muxer
+	 * @param sampleRate
+	 * @param channelLayout
+	 * @param codecId
+	 * @param streamIndex, is the stream index of source
+	 * @return
+	 */
 	public boolean addAudioStream(int sampleRate, int channelLayout, int codecId, int streamIndex) {
 		return false;
 	}
 	
+	/**
+	 * Add stream to the muxer
+	 * @param codecParameters
+	 * @param timebase
+	 * @param streamIndex, is the stream index of the source. Sometimes source and target stream index do not match
+	 * @return
+	 */
 	public boolean addStream(AVCodecParameters codecParameters, AVRational timebase, int streamIndex) {
 		return false;
 	}
