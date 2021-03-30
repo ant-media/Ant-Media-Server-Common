@@ -541,7 +541,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		AVCodecParameters codecParameters = getVideoCodecParameters();
 		if (codecParameters != null) {
 			logger.info("Incoming video width: {} height:{}", codecParameters.width(), codecParameters.height());
-			addStream2Muxers(codecParameters, TIME_BASE_FOR_MS);
+			addStream2Muxers(codecParameters, TIME_BASE_FOR_MS, streamIndex);
 			videoStreamIndex = streamIndex;
 			streamIndex++;
 		}
@@ -549,7 +549,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		
 		AVCodecParameters parameters = getAudioCodecParameters();
 		if (parameters != null) {
-			addStream2Muxers(parameters, TIME_BASE_FOR_MS);
+			addStream2Muxers(parameters, TIME_BASE_FOR_MS, streamIndex);
 			audioStreamIndex = streamIndex;
 		}
 		
@@ -577,19 +577,19 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			AVStream stream = inputFormatContext.streams(i);
 			AVCodecParameters codecpar = stream.codecpar();
 			if (codecpar.codec_type() == AVMEDIA_TYPE_VIDEO) {
-				logger.info("Video format width:{} height:{} for stream: {}", codecpar.width(), codecpar.height(), streamId);
+				logger.info("Video format width:{} height:{} for stream: {} source index:{} target index:{}", codecpar.width(), codecpar.height(), streamId, i, streamIndex);
 				width = codecpar.width();
 				height = codecpar.height();
 				
-				addStream2Muxers(codecpar, stream.time_base());
+				addStream2Muxers(codecpar, stream.time_base(), i);
 				videoStreamIndex = streamIndex;
 				streamIndex++;
 				
 			}
 			else if (codecpar.codec_type() == AVMEDIA_TYPE_AUDIO) {
-				logger.info("Audio format sample rate:{} bitrate:{} for stream: {}",codecpar.sample_rate(), codecpar.bit_rate(), streamId);
+				logger.info("Audio format sample rate:{} bitrate:{} for stream: {} source index:{} target index:{}",codecpar.sample_rate(), codecpar.bit_rate(), streamId, i, streamIndex);
 				
-				addStream2Muxers(codecpar, stream.time_base());
+				addStream2Muxers(codecpar, stream.time_base(), i);
 				audioStreamIndex = streamIndex;
 				streamIndex++;
 			}
@@ -642,7 +642,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	}
 	
 	
-	public void addStream2Muxers(AVCodecParameters codecParameters, AVRational rat) 
+	public void addStream2Muxers(AVCodecParameters codecParameters, AVRational rat, int streamIndex) 
 	{
 		synchronized (muxerList) {
 			
@@ -650,7 +650,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			while (iterator.hasNext()) 
 			{
 				Muxer muxer = iterator.next();
-				if (!muxer.addStream(codecParameters, rat)) 
+				if (!muxer.addStream(codecParameters, rat, streamIndex)) 
 				{
 					iterator.remove();
 					logger.warn("addStream returns false {} for stream: {}", muxer.getFormat(), streamId);
@@ -1450,7 +1450,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			
 			for (int i = 0; i < streamSourceInputFormatContext.nb_streams(); i++) 
 			{
-				if (!muxer.addStream(streamSourceInputFormatContext.streams(i).codecpar(), streamSourceInputFormatContext.streams(i).time_base())) {
+				if (!muxer.addStream(streamSourceInputFormatContext.streams(i).codecpar(), streamSourceInputFormatContext.streams(i).time_base(), i)) {
 					logger.warn("muxer add streams returns false {}", muxer.getFormat());
 					break;
 				}
@@ -1460,12 +1460,12 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		else {
 			AVCodecParameters videoParameters = getVideoCodecParameters();
 			if (videoParameters != null) {
-				muxer.addStream(videoParameters, TIME_BASE_FOR_MS);
+				muxer.addStream(videoParameters, TIME_BASE_FOR_MS, videoStreamIndex);
 			}
 			
 			AVCodecParameters audioParameters = getAudioCodecParameters();
 			if (audioParameters != null) {
-				muxer.addStream(audioParameters, TIME_BASE_FOR_MS);
+				muxer.addStream(audioParameters, TIME_BASE_FOR_MS, audioStreamIndex);
 			}
 		}
 		

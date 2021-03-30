@@ -473,7 +473,7 @@ public class HLSMuxer extends Muxer  {
 	
 	
 	@Override
-	public boolean addStream(AVCodecParameters codecParameters, AVRational timebase) 
+	public boolean addStream(AVCodecParameters codecParameters, AVRational timebase, int streamIndex) 
 	{
 		boolean result = false;
 		AVFormatContext outputContext = getOutputFormatContext();
@@ -534,11 +534,15 @@ public class HLSMuxer extends Muxer  {
 			
 			outStream.time_base(timebase);
 			codecTimeBaseMap.put(outStream.index(), timebase);
-			registeredStreamIndexList.add(outStream.index());
+			registeredStreamIndexList.add(streamIndex);
 			result = true;
 		}
 		
 		return result;
+	}
+	
+	public List<Integer> getRegisteredStreamIndexList() {
+		return registeredStreamIndexList;
 	}
 	
 

@@ -197,7 +197,7 @@ public abstract class RecordMuxer extends Muxer {
 	}
 
 	@Override
-	public synchronized boolean addStream(AVCodecParameters codecParameters, AVRational timebase) 
+	public synchronized boolean addStream(AVCodecParameters codecParameters, AVRational timebase, int streamIndex) 
 	{
 		boolean result = false;
 		AVFormatContext outputContext = getOutputFormatContext();
@@ -210,7 +210,7 @@ public abstract class RecordMuxer extends Muxer {
 			avcodec_parameters_copy(outStream.codecpar(), codecParameters);
 			outStream.time_base(timebase);
 			codecTimeBaseMap.put(outStream.index(), timebase);
-			registeredStreamIndexList.add(outStream.index());
+			registeredStreamIndexList.add(streamIndex);
 			outStream.codecpar().codec_tag(0);
 			
 			if (codecParameters.codec_type() == AVMEDIA_TYPE_AUDIO) 

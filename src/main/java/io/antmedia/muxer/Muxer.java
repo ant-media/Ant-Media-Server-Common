@@ -342,7 +342,7 @@ public abstract class Muxer {
 		return false;
 	}
 	
-	public boolean addStream(AVCodecParameters codecParameters, AVRational timebase) {
+	public boolean addStream(AVCodecParameters codecParameters, AVRational timebase, int streamIndex) {
 		return false;
 	}
 
