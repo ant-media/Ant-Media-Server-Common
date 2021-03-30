@@ -388,7 +388,10 @@ public class RtmpMuxer extends Muxer {
 	private void writePacket(AVPacket pkt, final AVRational inputTimebase, final AVRational outputTimebase, int codecType) 
 	{
 
-		
+		if (!isRunning.get() || !registeredStreamIndexList.contains(pkt.stream_index())) {
+			logger.info("Not writing to muxer because it's not started for {}", url);
+			return;
+		}
 
 		final AVFormatContext context = getOutputFormatContext();
 		if (context.streams(pkt.stream_index()).codecpar().codec_type() ==  AVMEDIA_TYPE_AUDIO && !headerWritten) {
