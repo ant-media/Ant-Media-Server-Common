@@ -26,6 +26,7 @@ import static org.bytedeco.ffmpeg.global.avformat.avformat_new_stream;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_write_header;
 import static org.bytedeco.ffmpeg.global.avformat.avio_closep;
 import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_AUDIO;
+import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_DATA;
 import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_VIDEO;
 import static org.bytedeco.ffmpeg.global.avutil.AV_PIX_FMT_YUV420P;
 import static org.bytedeco.ffmpeg.global.avutil.AV_ROUND_NEAR_INF;
@@ -370,8 +371,33 @@ public class RtmpMuxer extends Muxer {
 	 */
 	@Override
 	public synchronized void writePacket(AVPacket pkt, AVStream stream) {
-		AVStream outStream = outputFormatContext.streams(pkt.stream_index());
+		if (!isRunning.get() || !registeredStreamIndexList.contains(pkt.stream_index()))  {
+			if (time2log % 100 == 0) {
+				logger.warn("not registered stream index {}", file.getName());
+				time2log = 0;
+			}
+			time2log++;
+			return;
+		}
+		int streamIndex;
+		if (stream.codecpar().codec_type() == AVMEDIA_TYPE_VIDEO) {
+			streamIndex = videoIndex;
+		}
+		else if (stream.codecpar().codec_type() == AVMEDIA_TYPE_AUDIO) {
+			streamIndex = audioIndex;
+		}
+		else {
+			logger.error("Undefined codec type for stream: {} ", url);
+			return;
+		}
+		
+		AVStream outStream = outputFormatContext.streams(streamIndex);
+		int index = pkt.stream_index();
+		pkt.stream_index(streamIndex);
+				
 		writePacket(pkt, stream.time_base(),  outStream.time_base(), outStream.codecpar().codec_type());
+		
+		pkt.stream_index(index);
 	}
 
 	/**
@@ -379,6 +405,15 @@ public class RtmpMuxer extends Muxer {
 	 */
 	@Override
 	public synchronized void writePacket(AVPacket pkt, AVCodecContext codecContext) {
+		if (!isRunning.get() || !registeredStreamIndexList.contains(pkt.stream_index()))  {
+			if (time2log % 100 == 0) {
+				logger.warn("not registered stream index {}", file.getName());
+				time2log = 0;
+			}
+			time2log++;
+			return;
+		}
+		
 		AVStream outStream = outputFormatContext.streams(pkt.stream_index());
 		AVRational codecTimebase = codecTimeBaseMap.get(pkt.stream_index());
 		writePacket(pkt, codecTimebase,  outStream.time_base(), outStream.codecpar().codec_type()); 
@@ -387,12 +422,6 @@ public class RtmpMuxer extends Muxer {
 
 	private void writePacket(AVPacket pkt, final AVRational inputTimebase, final AVRational outputTimebase, int codecType) 
 	{
-
-		if (!isRunning.get() || !registeredStreamIndexList.contains(pkt.stream_index())) {
-			logger.info("Not writing to muxer because it's not started for {}", url);
-			return;
-		}
-
 		final AVFormatContext context = getOutputFormatContext();
 		if (context.streams(pkt.stream_index()).codecpar().codec_type() ==  AVMEDIA_TYPE_AUDIO && !headerWritten) {
 			//Opening the RTMP muxer may take some time and don't make audio queue increase
@@ -462,7 +491,6 @@ public class RtmpMuxer extends Muxer {
 						}
 						else{
 							setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
-
 						}
 					}
 					else {
@@ -504,6 +532,8 @@ public class RtmpMuxer extends Muxer {
 	}
 
 	boolean keyFrameReceived = false;
+	private int audioIndex;
+	private int videoIndex;
 
 	@Override
 	public synchronized void writeVideoBuffer(ByteBuffer encodedVideoFrame, long dts, int frameRotation, int streamIndex,
@@ -549,19 +579,36 @@ public class RtmpMuxer extends Muxer {
 	public boolean addStream(AVCodecParameters codecParameters, AVRational timebase, int streamIndex) {
 		boolean result = false;
 		AVFormatContext outputContext = getOutputFormatContext();
-		if (outputContext != null) 
+		if (outputContext != null 
+				&& (codecParameters.codec_type() == AVMEDIA_TYPE_AUDIO || codecParameters.codec_type() == AVMEDIA_TYPE_VIDEO)) 
 		{
 			AVStream outStream = avformat_new_stream(outputContext, null);
-
+			
 			avcodec_parameters_copy(outStream.codecpar(), codecParameters);
 			outStream.time_base(timebase);
 			codecTimeBaseMap.put(outStream.index(), timebase);
 			registeredStreamIndexList.add(streamIndex);
+			if (codecParameters.codec_type() == AVMEDIA_TYPE_AUDIO) 
+			{
+				audioIndex = outStream.index();
+			}
+			else {
+				videoIndex = outStream.index();
+			}
+			
+			result = true;
+		}
+		else if (codecParameters.codec_type() == AVMEDIA_TYPE_DATA) {
+			//if it's data, do not add and return true
 			result = true;
 		}
 
 		return result;
 	}
+	
+
+	
+	
 
 	@Override
 	public void writeAudioBuffer(ByteBuffer audioFrame, int streamIndex, long timestamp) {

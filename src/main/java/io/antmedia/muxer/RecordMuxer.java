@@ -701,10 +701,15 @@ public abstract class RecordMuxer extends Muxer {
 		else {
 			//for any other stream like subtitle, etc.
 			int ret = av_write_frame(context, pkt);
+
 			if (ret < 0 && logger.isWarnEnabled()) {
-				byte[] data = new byte[64];
-				av_strerror(ret, data, data.length);
-				logger.warn("cannot write frame to muxer({}) not audio. Error is {} ", file.getName(), new String(data, 0, data.length));
+				if (time2log  % 100 == 0)  {
+					byte[] data = new byte[64];
+					av_strerror(ret, data, data.length);
+					logger.warn("cannot frame to muxer({}) not audio and not video. Error is {} ", file.getName(), new String(data, 0, data.length));
+					time2log = 0;
+				}
+				time2log++;
 			}
 		}
 
