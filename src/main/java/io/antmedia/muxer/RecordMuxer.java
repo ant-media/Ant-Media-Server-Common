@@ -72,7 +72,6 @@ import io.vertx.core.Vertx;
 public abstract class RecordMuxer extends Muxer {
 
 	protected static Logger logger = LoggerFactory.getLogger(RecordMuxer.class);
-	protected List<Integer> registeredStreamIndexList = new ArrayList<>();
 	protected File fileTmp;
 	protected StorageClient storageClient = null;
 	protected String streamId;
@@ -763,11 +762,6 @@ public abstract class RecordMuxer extends Muxer {
 			av_strerror(ret, data, data.length);
 			logger.info("cannot write audio frame to muxer({}). Error is {} ", file.getName(), new String(data, 0, data.length));
 		}
-	}
-
-	
-	public List<Integer> getRegisteredStreamIndexList() {
-		return registeredStreamIndexList;
 	}
 
 	public void setDynamic(boolean dynamic) {

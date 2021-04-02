@@ -9,7 +9,9 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -82,6 +84,7 @@ public abstract class Muxer {
 	
 	protected AVPacket audioPkt;
 
+	protected List<Integer> registeredStreamIndexList = new ArrayList<>();
 	/**
 	 * Bitstream filter name that will be applied to packets
 	 */
@@ -363,6 +366,10 @@ public abstract class Muxer {
 
 	public void writeAudioBuffer(ByteBuffer byteBuffer, int i, long timestamp) {
 		//empty implementation
+	}
+	
+	public List<Integer> getRegisteredStreamIndexList() {
+		return registeredStreamIndexList;
 	}
 
 }

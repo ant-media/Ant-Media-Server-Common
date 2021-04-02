@@ -66,7 +66,7 @@ import org.slf4j.LoggerFactory;
 public class RtmpMuxer extends Muxer {
 
 	protected static Logger logger = LoggerFactory.getLogger(RtmpMuxer.class);
-	private List<Integer> registeredStreamIndexList = new ArrayList<>();
+	
 	private String url;
 	private AVPacket videoPkt;
 	private Map<Integer, AVRational> codecTimeBaseMap = new HashMap<>();
@@ -634,9 +634,7 @@ public class RtmpMuxer extends Muxer {
 		writePacket(audioPkt, (AVCodecContext)null);
 		av_packet_unref(audioPkt);
 	}
-
-
-
+	
 
 
 }

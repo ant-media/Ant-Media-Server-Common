@@ -76,8 +76,6 @@ public class HLSMuxer extends Muxer  {
 	private AVBSFContext bsfContext;
 	private long lastDTS = -1; 
 
-	private List<Integer> registeredStreamIndexList = new ArrayList<>();
-
 	protected static Logger logger = LoggerFactory.getLogger(HLSMuxer.class);
 	private String  hlsListSize = "20";
 	private String hlsTime = "5";
@@ -540,11 +538,6 @@ public class HLSMuxer extends Muxer  {
 		
 		return result;
 	}
-	
-	public List<Integer> getRegisteredStreamIndexList() {
-		return registeredStreamIndexList;
-	}
-	
 
 
 	/**
