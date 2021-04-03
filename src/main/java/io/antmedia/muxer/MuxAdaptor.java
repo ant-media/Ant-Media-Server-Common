@@ -510,7 +510,6 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	 * @throws Exception
 	 */
 	public boolean prepare() throws Exception {
-		
 		if (enableVideo) {
 			IVideoStreamCodec videoCodec = broadcastStream.getCodecInfo().getVideoCodec();
 			if (videoCodec instanceof AVCVideo) 
@@ -554,6 +553,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		}
 		
 		prepareMuxerIO();
+		getStreamHandler().startPublish(streamId,broadcastStream.getAbsoluteStartTimeMs());
 		
 		return true;
 	}
