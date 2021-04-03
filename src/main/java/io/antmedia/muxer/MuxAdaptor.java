@@ -1583,15 +1583,17 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 							String statusUpdate = endpointStatusUpdateMap.getValueOrDefault(endpoint.getRtmpUrl(), null);
 							if (statusUpdate != null) {
 								endpoint.setStatus(statusUpdate);
+								break;
 							}
 							else {
 								logger.warn("Endpoint is not found to update its status to {} for rtmp url:{}", statusUpdate, endpoint.getRtmpUrl());
 							}
 						}
+						getDataStore().updateBroadcastFields(broadcast.getStreamId(), broadcast);
+						
 					}
 					endpointStatusUpdateMap.clear();
-
-					getDataStore().updateBroadcastFields(broadcast.getStreamId(), broadcast);
+					
 				} catch (Exception e) {
 					logger.error(ExceptionUtils.getStackTrace(e));
 				}
