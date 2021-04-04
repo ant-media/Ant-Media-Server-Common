@@ -18,7 +18,7 @@ import static org.bytedeco.ffmpeg.global.avcodec.avcodec_parameters_copy;
 import static org.bytedeco.ffmpeg.global.avcodec.avcodec_parameters_from_context;
 import static org.bytedeco.ffmpeg.global.avformat.AVFMT_NOFILE;
 import static org.bytedeco.ffmpeg.global.avformat.AVIO_FLAG_WRITE;
-import static org.bytedeco.ffmpeg.global.avformat.av_interleaved_write_frame;
+import static org.bytedeco.ffmpeg.global.avformat.av_write_frame;
 import static org.bytedeco.ffmpeg.global.avformat.av_write_trailer;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_alloc_output_context2;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_free_context;
@@ -486,7 +486,7 @@ public class RtmpMuxer extends Muxer {
 					}
 
 					if (headerWritten) {
-						ret = av_interleaved_write_frame(context, tmpPacket);
+						ret = av_write_frame(context, tmpPacket);
 						if (ret < 0 && logger.isInfoEnabled()) {
 							byte[] data = new byte[128];
 							av_strerror(ret, data, data.length);
@@ -505,7 +505,7 @@ public class RtmpMuxer extends Muxer {
 			}
 			else 
 			{
-				ret = av_interleaved_write_frame(context, tmpPacket);
+				ret = av_write_frame(context, tmpPacket);
 				if (ret < 0 && logger.isInfoEnabled()) {
 					byte[] data = new byte[128];
 					av_strerror(ret, data, data.length);
@@ -519,7 +519,7 @@ public class RtmpMuxer extends Muxer {
 		{
 			if (headerWritten) 
 			{
-				ret = av_interleaved_write_frame(context, pkt);
+				ret = av_write_frame(context, pkt);
 				if (ret < 0 && logger.isInfoEnabled()) {
 					byte[] data = new byte[128];
 					av_strerror(ret, data, data.length);
