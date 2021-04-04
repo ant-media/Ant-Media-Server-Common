@@ -258,6 +258,13 @@ public class AppSettings {
 
 	private static final String SETTINGS_DASH_HTTP_STREAMING = "settings.dash.httpStreaming";
 
+	public static final String SETTINGS_S3_RECORDING_ENABLED = "settings.s3RecordingEnabled";
+
+	public static final String SETTINGS_S3_ACCESS_KEY = "settings.s3AccessKey";
+	public static final String SETTINGS_S3_SECRET_KEY = "settings.s3SecretKey";
+	public static final String SETTINGS_S3_REGION_NAME = "settings.s3RegionName";
+	public static final String SETTINGS_S3_BUCKET_NAME = "settings.s3BucketName";
+
 	@JsonIgnore
 	@NotSaved
 	private List<NetMask> allowedCIDRList = new ArrayList<>();
@@ -1103,6 +1110,36 @@ public class AppSettings {
 	 */
 	@Value( "${"+SETTINGS_DASH_HTTP_STREAMING+":true}" )
 	private boolean dashHttpStreaming;
+
+	/**
+	 * Application JWT Control Enabled
+	 */
+	@Value( "${"+SETTINGS_S3_RECORDING_ENABLED+":false}" )
+	private boolean s3RecordingEnabled;
+
+	/**
+	 * S3 Access key
+	 */
+	@Value( "${"+SETTINGS_S3_ACCESS_KEY+":#{null}}" )
+	private String s3AccessKey;
+
+	/**
+	 * S3 Secret Key
+	 */
+	@Value( "${"+SETTINGS_S3_SECRET_KEY+":#{null}}" )
+	private String s3SecretKey;
+
+	/**
+	 * S3 Bucket Name
+	 */
+	@Value( "${"+SETTINGS_S3_BUCKET_NAME+":#{null}}" )
+	private String s3BucketName;
+
+	/**
+	 * S3 Region Name
+	 */
+	@Value( "${"+SETTINGS_S3_REGION_NAME+":#{null}}" )
+	private String s3RegionName;
 
 	public boolean isWriteStatsToDatastore() {
 		return writeStatsToDatastore;
@@ -2229,8 +2266,41 @@ public class AppSettings {
 	}
 
 
-	
+	public boolean isS3RecordingEnabled() { return s3RecordingEnabled; }
 
-	
+	public void setS3RecordingEnabled(boolean s3RecordingEnabled) {
+		this.s3RecordingEnabled = s3RecordingEnabled;
+	}
+
+	public String getS3SecretKey() {
+		return s3SecretKey;
+	}
+
+	public void setS3SecretKey(String s3SecretKey) { this.s3SecretKey = s3SecretKey; }
+
+	public String getS3AccessKey() {
+		return s3AccessKey;
+	}
+
+	public void setS3AccessKey(String s3AccessKey) {
+		this.s3AccessKey = s3AccessKey;
+	}
+
+	public String getS3RegionName() {
+		return s3RegionName;
+	}
+
+	public void setS3RegionName(String s3RegionName) {
+		this.s3RegionName = s3RegionName;
+	}
+
+	public String getS3BucketName() {
+		return s3BucketName;
+	}
+
+	public void setS3BucketName(String s3BucketName) {
+		this.s3BucketName = s3BucketName;
+	}
+
 
 }
