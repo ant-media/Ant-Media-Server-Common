@@ -18,7 +18,7 @@ import static org.bytedeco.ffmpeg.global.avcodec.avcodec_parameters_copy;
 import static org.bytedeco.ffmpeg.global.avcodec.avcodec_parameters_from_context;
 import static org.bytedeco.ffmpeg.global.avformat.AVFMT_NOFILE;
 import static org.bytedeco.ffmpeg.global.avformat.AVIO_FLAG_WRITE;
-import static org.bytedeco.ffmpeg.global.avformat.av_write_frame;
+import static org.bytedeco.ffmpeg.global.avformat.av_interleaved_write_frame;
 import static org.bytedeco.ffmpeg.global.avformat.av_write_trailer;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_alloc_output_context2;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_free_context;
@@ -38,9 +38,7 @@ import static org.bytedeco.ffmpeg.global.avutil.av_rescale_q_rnd;
 import static org.bytedeco.ffmpeg.global.avutil.av_strerror;
 
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -79,6 +77,10 @@ public class RtmpMuxer extends Muxer {
 	private BytePointer allocatedExtraDataPointer = null;
 
 	private String status = IAntMediaStreamHandler.BROADCAST_STATUS_CREATED;
+	
+	boolean keyFrameReceived = false;
+	private int audioIndex;
+	private int videoIndex;
 
 	public RtmpMuxer(String url) {
 		super(null);
@@ -484,7 +486,7 @@ public class RtmpMuxer extends Muxer {
 					}
 
 					if (headerWritten) {
-						ret = av_write_frame(context, tmpPacket);
+						ret = av_interleaved_write_frame(context, tmpPacket);
 						if (ret < 0 && logger.isInfoEnabled()) {
 							byte[] data = new byte[128];
 							av_strerror(ret, data, data.length);
@@ -503,7 +505,7 @@ public class RtmpMuxer extends Muxer {
 			}
 			else 
 			{
-				ret = av_write_frame(context, tmpPacket);
+				ret = av_interleaved_write_frame(context, tmpPacket);
 				if (ret < 0 && logger.isInfoEnabled()) {
 					byte[] data = new byte[128];
 					av_strerror(ret, data, data.length);
@@ -517,7 +519,7 @@ public class RtmpMuxer extends Muxer {
 		{
 			if (headerWritten) 
 			{
-				ret = av_write_frame(context, pkt);
+				ret = av_interleaved_write_frame(context, pkt);
 				if (ret < 0 && logger.isInfoEnabled()) {
 					byte[] data = new byte[128];
 					av_strerror(ret, data, data.length);
@@ -532,10 +534,6 @@ public class RtmpMuxer extends Muxer {
 		pkt.duration(duration);
 		pkt.pos(pos);
 	}
-
-	boolean keyFrameReceived = false;
-	private int audioIndex;
-	private int videoIndex;
 
 	@Override
 	public synchronized void writeVideoBuffer(ByteBuffer encodedVideoFrame, long dts, int frameRotation, int streamIndex,
