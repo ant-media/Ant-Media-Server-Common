@@ -122,6 +122,7 @@ public class RtmpMuxer extends Muxer {
 		}
 		outStream.codecpar().codec_tag(0);
 		codecTimeBaseMap.put(streamIndex, codecContext.time_base());
+		logger.info("Adding stream index:{} for stream:{} codec type:{}", streamIndex, url, codecContext.codec_type());
 		setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING);
 		return true;
 
@@ -359,6 +360,7 @@ public class RtmpMuxer extends Muxer {
 			outStream.time_base(bsfExtractdataContext.time_base_out());
 
 			codecTimeBaseMap.put(streamIndex, timeBase);
+			logger.info("Adding video stream index:{} for stream:{}", streamIndex, url);
 			result = true;
 		}
 
@@ -506,7 +508,7 @@ public class RtmpMuxer extends Muxer {
 					byte[] data = new byte[128];
 					av_strerror(ret, data, data.length);
 					setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_ERROR);
-					logger.info("cannot write video frame to muxer. Error: {} stream: {}", new String(data, 0, data.length), file != null ? file.getName() : "no name");
+					logger.info("cannot write video frame to muxer. Error: {} stream: {} codec type: {} index: {}", new String(data, 0, data.length), file != null ? file.getName() : "no name", codecType, pkt.stream_index());
 				}
 			}
 			av_packet_unref(tmpPacket);
@@ -520,7 +522,7 @@ public class RtmpMuxer extends Muxer {
 					byte[] data = new byte[128];
 					av_strerror(ret, data, data.length);
 					setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_ERROR);
-					logger.info("cannot write frame(not video) to muxer. Error is {} ", new String(data, 0, data.length));
+					logger.info("cannot write frame to muxer(not video). Error: {} stream: {} codec type: {} index: {}", new String(data, 0, data.length), file != null ? file.getName() : "no name", codecType, pkt.stream_index());
 				}
 			}
 		}

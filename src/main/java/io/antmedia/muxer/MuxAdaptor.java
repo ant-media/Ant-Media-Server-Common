@@ -540,7 +540,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		int streamIndex = 0;
 		AVCodecParameters codecParameters = getVideoCodecParameters();
 		if (codecParameters != null) {
-			logger.info("Incoming video width: {} height:{}", codecParameters.width(), codecParameters.height());
+			logger.info("Incoming video width: {} height:{} stream:{}", codecParameters.width(), codecParameters.height(), streamId);
 			addStream2Muxers(codecParameters, TIME_BASE_FOR_MS, streamIndex);
 			videoStreamIndex = streamIndex;
 			streamIndex++;
