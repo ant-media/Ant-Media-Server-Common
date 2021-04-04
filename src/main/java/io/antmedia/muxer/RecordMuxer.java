@@ -24,7 +24,7 @@ import static org.bytedeco.ffmpeg.global.avformat.avformat_new_stream;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_open_input;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_write_header;
 import static org.bytedeco.ffmpeg.global.avformat.avio_closep;
-import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_AUDIO;
+import static org.bytedeco.ffmpeg.global.avutil.*;
 import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_VIDEO;
 import static org.bytedeco.ffmpeg.global.avutil.AV_NOPTS_VALUE;
 import static org.bytedeco.ffmpeg.global.avutil.AV_PIX_FMT_YUV420P;
@@ -72,7 +72,6 @@ import io.vertx.core.Vertx;
 public abstract class RecordMuxer extends Muxer {
 
 	protected static Logger logger = LoggerFactory.getLogger(RecordMuxer.class);
-	protected List<Integer> registeredStreamIndexList = new ArrayList<>();
 	protected File fileTmp;
 	protected StorageClient storageClient = null;
 	protected String streamId;
@@ -196,7 +195,7 @@ public abstract class RecordMuxer extends Muxer {
 	}
 
 	@Override
-	public synchronized boolean addStream(AVCodecParameters codecParameters, AVRational timebase)
+	public synchronized boolean addStream(AVCodecParameters codecParameters, AVRational timebase, int streamIndex) 
 	{
 		boolean result = false;
 		AVFormatContext outputContext = getOutputFormatContext();
@@ -209,7 +208,7 @@ public abstract class RecordMuxer extends Muxer {
 			avcodec_parameters_copy(outStream.codecpar(), codecParameters);
 			outStream.time_base(timebase);
 			codecTimeBaseMap.put(outStream.index(), timebase);
-			registeredStreamIndexList.add(outStream.index());
+			registeredStreamIndexList.add(streamIndex);
 			outStream.codecpar().codec_tag(0);
 
 			if (codecParameters.codec_type() == AVMEDIA_TYPE_AUDIO)
@@ -221,7 +220,11 @@ public abstract class RecordMuxer extends Muxer {
 			}
 			result = true;
 		}
-
+		else if (codecParameters.codec_type() == AVMEDIA_TYPE_DATA) {
+			//if it's data, do not add and return true
+			result = true;
+		}
+		
 		return result;
 	}
 
@@ -696,10 +699,15 @@ public abstract class RecordMuxer extends Muxer {
 		else {
 			//for any other stream like subtitle, etc.
 			int ret = av_write_frame(context, pkt);
+
 			if (ret < 0 && logger.isWarnEnabled()) {
-				byte[] data = new byte[64];
-				av_strerror(ret, data, data.length);
-				logger.warn("cannot write frame to muxer({}) not audio. Error is {} ", file.getName(), new String(data, 0, data.length));
+				if (time2log  % 100 == 0)  {
+					byte[] data = new byte[64];
+					av_strerror(ret, data, data.length);
+					logger.warn("cannot frame to muxer({}) not audio and not video. Error is {} ", file.getName(), new String(data, 0, data.length));
+					time2log = 0;
+				}
+				time2log++;
 			}
 		}
 
@@ -753,11 +761,6 @@ public abstract class RecordMuxer extends Muxer {
 			av_strerror(ret, data, data.length);
 			logger.info("cannot write audio frame to muxer({}). Error is {} ", file.getName(), new String(data, 0, data.length));
 		}
-	}
-
-
-	public List<Integer> getRegisteredStreamIndexList() {
-		return registeredStreamIndexList;
 	}
 
 	public void setDynamic(boolean dynamic) {

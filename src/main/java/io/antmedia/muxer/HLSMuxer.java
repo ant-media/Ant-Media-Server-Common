@@ -76,8 +76,6 @@ public class HLSMuxer extends Muxer  {
 	private AVBSFContext bsfContext;
 	private long lastDTS = -1;
 
-	private List<Integer> registeredStreamIndexList = new ArrayList<>();
-
 	protected static Logger logger = LoggerFactory.getLogger(HLSMuxer.class);
 	private String  hlsListSize = "20";
 	private String hlsTime = "5";
@@ -280,7 +278,7 @@ public class HLSMuxer extends Muxer  {
 			if (ret < 0 && logger.isInfoEnabled()) {
 				byte[] data = new byte[64];
 				av_strerror(ret, data, data.length);
-				logger.info("cannot write frame(not video) to muxer. Error is {} ", new String(data, 0, data.length));
+				logger.info("cannot write frame(not video) to muxer. Error is {} stream: {}", new String(data, 0, data.length),  file.getName());
 			}
 		}
 		pkt.pts(pts);
@@ -473,7 +471,8 @@ public class HLSMuxer extends Muxer  {
 
 
 	@Override
-	public boolean addStream(AVCodecParameters codecParameters, AVRational timebase)
+
+	public boolean addStream(AVCodecParameters codecParameters, AVRational timebase, int streamIndex) 
 	{
 		boolean result = false;
 		AVFormatContext outputContext = getOutputFormatContext();
@@ -534,13 +533,12 @@ public class HLSMuxer extends Muxer  {
 
 			outStream.time_base(timebase);
 			codecTimeBaseMap.put(outStream.index(), timebase);
-			registeredStreamIndexList.add(outStream.index());
+			registeredStreamIndexList.add(streamIndex);
 			result = true;
 		}
 
 		return result;
 	}
-
 
 
 	/**
