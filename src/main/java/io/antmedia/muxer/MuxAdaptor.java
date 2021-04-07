@@ -1405,6 +1405,10 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	public void setBroadcast(Broadcast broadcast) {
 		this.broadcast = broadcast;
 	}
+	// this is for test cases
+	public void setGeneratePreview(boolean generatePreview){
+		this.generatePreview=generatePreview;
+	}
 
 	public int getPreviewHeight() {
 		return previewHeight;
