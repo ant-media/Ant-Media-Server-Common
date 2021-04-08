@@ -1120,10 +1120,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 						logger.error(ExceptionUtils.getStackTrace(e));
 					}
 					p.complete();
-				}, false, r -> {
-					//no care
-				})
-						);
+				}, false, null));
 
 
 				if (bufferTimeMs > 0)  
@@ -1140,9 +1137,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 							logger.error(ExceptionUtils.getStackTrace(e));
 						}
 						p.complete();
-					}, false, r -> {
-						//no care
-					})
+					}, false, null)
 							);
 
 				}
