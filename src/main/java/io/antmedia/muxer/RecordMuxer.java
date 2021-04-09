@@ -451,7 +451,8 @@ public abstract class RecordMuxer extends Muxer {
 			} catch (Exception e) {
 				logger.error(e.getMessage());
 			}
-		}, r->{});
+			l.complete();
+		}, null);
 
 	}
 
