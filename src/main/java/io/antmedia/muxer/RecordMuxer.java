@@ -187,6 +187,9 @@ public abstract class RecordMuxer extends Muxer {
 			////////////////////////
 			//TODO: This is a workaround solution. Adding sampleRate as timebase may not be correct. This method is only called by OpusForwarder
 			/////////////////////////
+			
+			//update about the workaround solution: We need to set the samplerate as timebase because 
+			// audio timestamp is coming with the sample rate scale from webrtc side
 			timeBase.num(1).den(sampleRate);
 			codecTimeBaseMap.put(streamIndex, timeBase);
 			result = true;
