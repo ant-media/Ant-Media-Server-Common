@@ -1,7 +1,6 @@
 package io.antmedia.muxer;
 
 
-import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_OPUS;
 import static org.bytedeco.ffmpeg.global.avcodec.AV_PKT_FLAG_KEY;
 import static org.bytedeco.ffmpeg.global.avcodec.av_bsf_free;
 import static org.bytedeco.ffmpeg.global.avcodec.av_bsf_receive_packet;
@@ -24,7 +23,8 @@ import static org.bytedeco.ffmpeg.global.avformat.avformat_new_stream;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_open_input;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_write_header;
 import static org.bytedeco.ffmpeg.global.avformat.avio_closep;
-import static org.bytedeco.ffmpeg.global.avutil.*;
+import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_AUDIO;
+import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_DATA;
 import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_VIDEO;
 import static org.bytedeco.ffmpeg.global.avutil.AV_NOPTS_VALUE;
 import static org.bytedeco.ffmpeg.global.avutil.AV_PIX_FMT_YUV420P;
@@ -40,9 +40,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -107,11 +105,8 @@ public abstract class RecordMuxer extends Muxer {
 	}
 
 	protected int[] SUPPORTED_CODECS;
-	private long firstAudioPts = -1;
-	private long firstVideoPts = -1;
 	private long firstAudioDts = -1;
 	private long firstVideoDts = -1;
-
 
 	public boolean isCodecSupported(int codecId) {
 		for (int i=0; i< SUPPORTED_CODECS.length; i++) {
@@ -661,11 +656,10 @@ public abstract class RecordMuxer extends Muxer {
 
 		if (codecType == AVMEDIA_TYPE_AUDIO) 
 		{
-			if(firstAudioPts == -1 || firstAudioDts == -1) {
-				firstAudioPts = pkt.pts();
+			if(firstAudioDts == -1) {
 				firstAudioDts = pkt.dts();
 			}
-			pkt.pts(av_rescale_q_rnd(pkt.pts() - firstAudioPts, inputTimebase, outputTimebase, AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
+			pkt.pts(av_rescale_q_rnd(pkt.pts() - firstAudioDts, inputTimebase, outputTimebase, AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
 			pkt.dts(av_rescale_q_rnd(pkt.dts() - firstAudioDts , inputTimebase, outputTimebase, AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
 			
 			
@@ -680,15 +674,13 @@ public abstract class RecordMuxer extends Muxer {
 		}
 		else if (codecType == AVMEDIA_TYPE_VIDEO) 
 		{
-			if(firstVideoPts == -1 || firstVideoDts == -1) {
-				firstVideoPts = pkt.pts();
+			if(firstVideoDts == -1) {
 				firstVideoDts = pkt.dts();
 			}
 			// we don't set startTimeInVideoTimebase here because we only start with key frame and we drop all frames 
 			// until the first key frame
-			pkt.pts(av_rescale_q_rnd(pkt.pts() - firstVideoPts , inputTimebase, outputTimebase, AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
+			pkt.pts(av_rescale_q_rnd(pkt.pts() - firstVideoDts , inputTimebase, outputTimebase, AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
 			pkt.dts(av_rescale_q_rnd(pkt.dts() - firstVideoDts, inputTimebase, outputTimebase, AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
-			
 			
 			int ret = av_packet_ref(tmpPacket , pkt);
 			if (ret < 0) {
@@ -747,11 +739,12 @@ public abstract class RecordMuxer extends Muxer {
 			}
 		}
 		else {
+			
 			ret = av_write_frame(context, pkt);
 			if (ret < 0 && logger.isWarnEnabled()) {
 				byte[] data = new byte[64];
 				av_strerror(ret, data, data.length);
-				logger.warn("cannot write video frame to muxer({}) not audio. Error is {} ", file.getName(), new String(data, 0, data.length));
+				logger.warn("cannot write video frame to muxer({}). Pts: {} dts:{}  Error is {} ", file.getName(), pkt.pts(), pkt.dts(), new String(data, 0, data.length));
 			}
 		}
 	}
