@@ -747,14 +747,15 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			//position 2,3,4 composition time offset
 			int compositionTimeOffset = (packet.getData().position(2).get() << 16)  | packet.getData().position(3).getShort();
 			long pts = dts + compositionTimeOffset;
-
+			
 			//we get 5 less bytes because first 5 bytes is related to the video tag. It's not part of the generic packet
 			ByteBuffer byteBuffer = ByteBuffer.allocateDirect(bodySize-5);
 			byteBuffer.put(packet.getData().buf().position(5));
 
 			synchronized (muxerList) 
 			{
-				for (Muxer muxer : muxerList) {
+				for (Muxer muxer : muxerList) 
+				{
 					muxer.writeVideoBuffer(byteBuffer, dts, 0, videoStreamIndex, (frameType & 0xF0) == IVideoStreamCodec.FLV_FRAME_KEY, 0, pts);
 				}
 			}
@@ -766,7 +767,6 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			if (!firstAudioPacketSkipped) {
 				firstAudioPacketSkipped = true;
 				return;
-
 			}
 			int bodySize = packet.getData().limit();
 			//we get 2 less bytes because first 2 bytes is related to the audio tag. It's not part of the generic packet
@@ -775,7 +775,8 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 			synchronized (muxerList) 
 			{
-				for (Muxer muxer : muxerList) {
+				for (Muxer muxer : muxerList) 
+				{
 					muxer.writeAudioBuffer(byteBuffer, audioStreamIndex, dts);
 				}
 			}
