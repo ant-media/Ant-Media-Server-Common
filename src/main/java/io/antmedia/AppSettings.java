@@ -272,6 +272,9 @@ public class AppSettings {
 	
 	private static final String SETTINGS_DASH_HTTP_ENDPOINT = "settings.dash.httpEndpoint";
 
+	private static final String SETTINGS_DISABLE_TIME_TOKEN_PLAY = "settings.disableTimeTokenForPlay";
+	private static final String SETTINGS_DISABLE_TIME_TOKEN_PUBLISH = "settings.disableTimeTokenForPublish";
+
 	@JsonIgnore
 	@NotSaved
 	private List<NetMask> allowedCIDRList = new ArrayList<>();
@@ -502,7 +505,17 @@ public class AppSettings {
 	 * the settings for accepting only time based token subscribers as connections to the streams 
 	 */
 	@Value( "${"+SETTINGS_TIME_TOKEN_SUBSCRIBER_ONLY+":false}" )
-	private boolean timeTokenSubscriberOnly;	
+	private boolean timeTokenSubscriberOnly;
+	/**
+	 * the settings for accepting only time based token subscribers as connections to the streams
+	 */
+	@Value( "${"+SETTINGS_DISABLE_TIME_TOKEN_PLAY+":false}" )
+	private boolean disableTimeTokenForPlay;
+	/**
+	 * the settings for accepting only time based token subscribers as connections to the streams
+	 */
+	@Value( "${"+SETTINGS_DISABLE_TIME_TOKEN_PUBLISH+":false}" )
+	private boolean disableTimeTokenForPublish;
 	
 	/**
 	 * period for the generated time token 
@@ -1532,7 +1545,22 @@ public class AppSettings {
 	
 	public void setTimeTokenSubscriberOnly(boolean timeTokenSubscriberOnly) {
 		this.timeTokenSubscriberOnly = timeTokenSubscriberOnly;
-	}	
+	}
+
+	public boolean isDisableTimeTokenForPlay() {
+		return disableTimeTokenForPlay;
+	}
+
+	public void setDisableTimeTokenForPlay(boolean disableTimeTokenForPlay) {
+		this.disableTimeTokenForPlay = disableTimeTokenForPlay;
+	}
+	public boolean isDisableTimeTokenForPublish() {
+		return disableTimeTokenForPublish;
+	}
+
+	public void setDisableTimeTokenForPublish(boolean disableTimeTokenForPublish) {
+		this.disableTimeTokenForPublish = disableTimeTokenForPublish;
+	}
 	
 	public String getMuxerFinishScript() {
 		return muxerFinishScript;
