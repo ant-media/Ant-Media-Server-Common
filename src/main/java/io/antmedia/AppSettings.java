@@ -272,8 +272,8 @@ public class AppSettings {
 	
 	private static final String SETTINGS_DASH_HTTP_ENDPOINT = "settings.dash.httpEndpoint";
 
-	private static final String SETTINGS_DISABLE_TIME_TOKEN_PLAY = "settings.disableTimeTokenForPlay";
-	private static final String SETTINGS_DISABLE_TIME_TOKEN_PUBLISH = "settings.disableTimeTokenForPublish";
+	public static final String SETTINGS_DISABLE_TIME_TOKEN_PLAY = "settings.disableTimeTokenForPlay";
+	public static final String SETTINGS_DISABLE_TIME_TOKEN_PUBLISH = "settings.disableTimeTokenForPublish";
 
 	@JsonIgnore
 	@NotSaved
