@@ -272,8 +272,8 @@ public class AppSettings {
 	
 	private static final String SETTINGS_DASH_HTTP_ENDPOINT = "settings.dash.httpEndpoint";
 
-	public static final String SETTINGS_DISABLE_TIME_TOKEN_PLAY = "settings.disableTimeTokenForPlay";
-	public static final String SETTINGS_DISABLE_TIME_TOKEN_PUBLISH = "settings.disableTimeTokenForPublish";
+	public static final String SETTINGS_ENABLE_TIME_TOKEN_PLAY = "settings.enableTimeTokenForPlay";
+	public static final String SETTINGS_ENABLE_TIME_TOKEN_PUBLISH = "settings.enableTimeTokenForPublish";
 
 	@JsonIgnore
 	@NotSaved
@@ -509,13 +509,13 @@ public class AppSettings {
 	/**
 	 * the settings for accepting only time based token subscribers as connections to the streams
 	 */
-	@Value( "${"+SETTINGS_DISABLE_TIME_TOKEN_PLAY+":false}" )
-	private boolean disableTimeTokenForPlay;
+	@Value( "${"+SETTINGS_ENABLE_TIME_TOKEN_PLAY+":false}" )
+	private boolean enableTimeTokenForPlay;
 	/**
 	 * the settings for accepting only time based token subscribers as connections to the streams
 	 */
-	@Value( "${"+SETTINGS_DISABLE_TIME_TOKEN_PUBLISH+":false}" )
-	private boolean disableTimeTokenForPublish;
+	@Value( "${"+SETTINGS_ENABLE_TIME_TOKEN_PUBLISH+":false}" )
+	private boolean enableTimeTokenForPublish;
 	
 	/**
 	 * period for the generated time token 
@@ -1547,19 +1547,19 @@ public class AppSettings {
 		this.timeTokenSubscriberOnly = timeTokenSubscriberOnly;
 	}
 
-	public boolean isDisableTimeTokenForPlay() {
-		return disableTimeTokenForPlay;
+	public boolean isEnableTimeTokenForPlay() {
+		return enableTimeTokenForPlay;
 	}
 
-	public void setDisableTimeTokenForPlay(boolean disableTimeTokenForPlay) {
-		this.disableTimeTokenForPlay = disableTimeTokenForPlay;
+	public void setEnableTimeTokenForPlay(boolean enableTimeTokenForPlay) {
+		this.enableTimeTokenForPlay = enableTimeTokenForPlay;
 	}
-	public boolean isDisableTimeTokenForPublish() {
-		return disableTimeTokenForPublish;
+	public boolean isEnableTimeTokenForPublish() {
+		return enableTimeTokenForPublish;
 	}
 
-	public void setDisableTimeTokenForPublish(boolean disableTimeTokenForPublish) {
-		this.disableTimeTokenForPublish = disableTimeTokenForPublish;
+	public void setEnableTimeTokenForPublish(boolean enableTimeTokenForPublish) {
+		this.enableTimeTokenForPublish = enableTimeTokenForPublish;
 	}
 	
 	public String getMuxerFinishScript() {
@@ -1625,6 +1625,8 @@ public class AppSettings {
 		publishTokenControlEnabled = false;
 		playTokenControlEnabled = false;
 		timeTokenSubscriberOnly = false;
+		enableTimeTokenForPlay = false;
+		enableTimeTokenForPublish = false;
 		hlsPlayListType = null;
 		previewOverwrite = false;
 		objectDetectionEnabled = false;
