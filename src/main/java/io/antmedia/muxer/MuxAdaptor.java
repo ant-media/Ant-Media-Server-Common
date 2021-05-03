@@ -735,7 +735,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		{
 
 			if(!enableVideo) {
-				logger.warn("Audio data was disabled beginning of the stream, so discarding audio packets.");
+				logger.warn("Video data was disabled beginning of the stream, so discarding video packets.");
 				return;
 			}
 
