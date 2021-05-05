@@ -278,6 +278,7 @@ public class AppSettings {
 	public static final String SETTINGS_S3_SECRET_KEY = "settings.s3SecretKey";
 	public static final String SETTINGS_S3_REGION_NAME = "settings.s3RegionName";
 	public static final String SETTINGS_S3_BUCKET_NAME = "settings.s3BucketName";
+	public static final String SETTINGS_S3_ENDPOINT = "settings.s3Endpoint";
 
 	@JsonIgnore
 	@NotSaved
@@ -1249,6 +1250,13 @@ public class AppSettings {
 	 */
 	@Value( "${"+SETTINGS_S3_REGION_NAME+":#{null}}" )
 	private String s3RegionName;
+
+	/**
+	 * S3 Endpoint
+	 */
+	@Value( "${"+SETTINGS_S3_ENDPOINT+":#{null}}" )
+	private String s3Endpoint;
+
 
 	public boolean isWriteStatsToDatastore() {
 		return writeStatsToDatastore;
@@ -2413,6 +2421,14 @@ public class AppSettings {
 
 	public void setS3BucketName(String s3BucketName) {
 		this.s3BucketName = s3BucketName;
+	}
+
+	public String getS3Endpoint() {
+		return s3Endpoint;
+	}
+
+	public void setS3Endpoint(String s3Endpoint) {
+		this.s3Endpoint = s3Endpoint;
 	}
 
 
