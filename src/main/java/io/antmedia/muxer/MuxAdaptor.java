@@ -761,6 +761,8 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 			synchronized (muxerList) 
 			{
+				packetFeeder.writeVideoBuffer(byteBuffer, dts, 0, videoStreamIndex, (frameType & 0xF0) == IVideoStreamCodec.FLV_FRAME_KEY, 0, pts);
+
 				for (Muxer muxer : muxerList) 
 				{
 					muxer.writeVideoBuffer(byteBuffer, dts, 0, videoStreamIndex, (frameType & 0xF0) == IVideoStreamCodec.FLV_FRAME_KEY, 0, pts);
@@ -782,6 +784,8 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 			synchronized (muxerList) 
 			{
+				packetFeeder.writeAudioBuffer(byteBuffer, audioStreamIndex, dts);
+
 				for (Muxer muxer : muxerList) 
 				{
 					muxer.writeAudioBuffer(byteBuffer, audioStreamIndex, dts);
@@ -1749,6 +1753,10 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		listener.setVideoStreamInfo(streamId, videoInfo);
 		listener.setAudioStreamInfo(streamId, audioInfo);
 		packetFeeder.addListener(listener);
+	}
+	
+	public void removePacketListener(IPacketListener listener) {
+		packetFeeder.removeListener(listener);
 	}
 	
 	public void setVideoCodecParameter(AVCodecParameters videoCodecParameters) {
