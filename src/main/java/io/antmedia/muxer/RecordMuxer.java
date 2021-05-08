@@ -446,7 +446,7 @@ public abstract class RecordMuxer extends Muxer {
 				AppSettings appSettings = (AppSettings) appCtx.getBean(AppSettings.BEAN_NAME);
 
 
-				if ((appSettings.isMp4MuxingEnabled() || appSettings.isWebMMuxingEnabled()) && appSettings.isS3RecordingEnabled()) {
+				if (( appSettings.isMp4MuxingEnabled() || appSettings.isWebMMuxingEnabled() ) && appSettings.isS3RecordingEnabled()) {
 					logger.info("Storage client is available saving {} to storage", f.getName());
 					saveToStorage(f);
 				}
