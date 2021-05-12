@@ -1123,5 +1123,9 @@ public class ClientBroadcastStream extends AbstractClientStream implements IClie
 	public void setAutomaticHlsRecording(boolean automaticHlsRecording) {
 		this.automaticHlsRecording = automaticHlsRecording;
 	}
+	
+	public void setMuxAdaptor(WeakReference<MuxAdaptor> muxAdaptor) {
+		this.muxAdaptor = muxAdaptor;
+	}
 
 }
