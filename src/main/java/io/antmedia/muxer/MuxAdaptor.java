@@ -554,6 +554,8 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		}
 
 		prepareMuxerIO();
+		getStreamHandler().startPublish(streamId,broadcastStream.getAbsoluteStartTimeMs(), "RTMP");
+		
 
 		return true;
 	}
