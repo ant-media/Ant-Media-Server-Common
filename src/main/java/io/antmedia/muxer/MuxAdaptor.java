@@ -554,6 +554,8 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		}
 
 		prepareMuxerIO();
+		getStreamHandler().startPublish(streamId,broadcastStream.getAbsoluteStartTimeMs(), "RTMP");
+		
 
 		return true;
 	}
@@ -734,6 +736,10 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		if (packet.getDataType() == Constants.TYPE_VIDEO_DATA) 
 		{
 
+			if(!enableVideo) {
+				logger.warn("Video data was disabled beginning of the stream, so discarding video packets.");
+				return;
+			}
 
 			measureIngestTime(dts, ((CachedEvent)packet).getReceivedTime());
 			if (!firstVideoPacketSkipped) {
@@ -764,6 +770,11 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		}
 		else if (packet.getDataType() == Constants.TYPE_AUDIO_DATA) {
 
+			if(!enableAudio) {
+				logger.warn("Audio data was disabled beginning of the stream, so discarding audio packets.");
+				return;
+			}
+			
 			if (!firstAudioPacketSkipped) {
 				firstAudioPacketSkipped = true;
 				return;
@@ -1470,7 +1481,6 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 					break;
 				}
 			}
-
 		}
 		else {
 			AVCodecParameters videoParameters = getVideoCodecParameters();
