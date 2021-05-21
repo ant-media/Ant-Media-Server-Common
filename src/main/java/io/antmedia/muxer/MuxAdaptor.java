@@ -87,7 +87,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 
 	private int videoStreamIndex;
-	protected int audioStreamIndex;
+	private int audioStreamIndex;
 
 	protected boolean previewOverwrite = false;
 
