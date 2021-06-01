@@ -476,7 +476,6 @@ public abstract class RecordMuxer extends Muxer {
 
 
 	protected void finalizeRecordFile(final File file) throws IOException {
-		System.out.println("finalize record file");
 		Files.move(fileTmp.toPath(),file.toPath());
 		logger.info("{} is ready", file.getName());
 	}
