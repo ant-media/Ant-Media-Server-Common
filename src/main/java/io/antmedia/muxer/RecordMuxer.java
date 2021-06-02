@@ -44,6 +44,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
+import io.antmedia.AppSettings;
 import org.bytedeco.ffmpeg.avcodec.AVBSFContext;
 import org.bytedeco.ffmpeg.avcodec.AVCodec;
 import org.bytedeco.ffmpeg.avcodec.AVCodecContext;
@@ -442,7 +443,10 @@ public abstract class RecordMuxer extends Muxer {
 					((IAntMediaStreamHandler)bean).muxingFinished(streamId, f, getDurationInMs(f,streamId), resolution);
 				}
 
-				if (storageClient != null) {
+				AppSettings appSettings = (AppSettings) appCtx.getBean(AppSettings.BEAN_NAME);
+
+
+				if (appSettings.isS3RecordingEnabled()) {
 					logger.info("Storage client is available saving {} to storage", f.getName());
 					saveToStorage(f);
 				}
