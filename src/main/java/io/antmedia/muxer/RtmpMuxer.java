@@ -198,7 +198,7 @@ public class RtmpMuxer extends Muxer {
 		return true;
 	}
 
-	private boolean writeHeader() {
+	private synchronized boolean writeHeader() {
 		long startTime = System.currentTimeMillis();
 		AVDictionary optionsDictionary = null;
 
@@ -236,7 +236,7 @@ public class RtmpMuxer extends Muxer {
 	 * {@inheritDoc}
 	 */
 	@Override
-	public void writeTrailer() {
+	public synchronized void writeTrailer() {
 
 		if (!isRunning.get() || outputFormatContext == null || outputFormatContext.pb() == null) {
 			//return if it is already null
