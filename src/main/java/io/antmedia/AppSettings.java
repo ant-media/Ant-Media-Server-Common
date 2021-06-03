@@ -272,6 +272,13 @@ public class AppSettings {
 	
 	private static final String SETTINGS_DASH_HTTP_ENDPOINT = "settings.dash.httpEndpoint";
 
+	public static final String SETTINGS_S3_RECORDING_ENABLED = "settings.s3RecordingEnabled";
+
+	public static final String SETTINGS_S3_ACCESS_KEY = "settings.s3AccessKey";
+	public static final String SETTINGS_S3_SECRET_KEY = "settings.s3SecretKey";
+	public static final String SETTINGS_S3_REGION_NAME = "settings.s3RegionName";
+	public static final String SETTINGS_S3_BUCKET_NAME = "settings.s3BucketName";
+	public static final String SETTINGS_S3_ENDPOINT = "settings.s3Endpoint";
 	public static final String SETTINGS_ENABLE_TIME_TOKEN_PLAY = "settings.enableTimeTokenForPlay";
 	public static final String SETTINGS_ENABLE_TIME_TOKEN_PUBLISH = "settings.enableTimeTokenForPublish";
 
@@ -1225,6 +1232,43 @@ public class AppSettings {
 	 */
 	@Value( "${"+SETTINGS_DASH_HTTP_ENDPOINT+":#{null}}" )
 	private String dashHttpEndpoint;
+
+	/**
+	 * Application JWT Control Enabled
+	 */
+	@Value( "${"+SETTINGS_S3_RECORDING_ENABLED+":false}" )
+	private boolean s3RecordingEnabled;
+
+	/**
+	 * S3 Access key
+	 */
+	@Value( "${"+SETTINGS_S3_ACCESS_KEY+":#{null}}" )
+	private String s3AccessKey;
+
+	/**
+	 * S3 Secret Key
+	 */
+	@Value( "${"+SETTINGS_S3_SECRET_KEY+":#{null}}" )
+	private String s3SecretKey;
+
+	/**
+	 * S3 Bucket Name
+	 */
+	@Value( "${"+SETTINGS_S3_BUCKET_NAME+":#{null}}" )
+	private String s3BucketName;
+
+	/**
+	 * S3 Region Name
+	 */
+	@Value( "${"+SETTINGS_S3_REGION_NAME+":#{null}}" )
+	private String s3RegionName;
+
+	/**
+	 * S3 Endpoint
+	 */
+	@Value( "${"+SETTINGS_S3_ENDPOINT+":#{null}}" )
+	private String s3Endpoint;
+
 
 	public boolean isWriteStatsToDatastore() {
 		return writeStatsToDatastore;
@@ -2371,7 +2415,55 @@ public class AppSettings {
 		return dashHttpEndpoint;
 	}
 
+
+	public boolean isS3RecordingEnabled() { return s3RecordingEnabled; }
+
+	public void setS3RecordingEnabled(boolean s3RecordingEnabled) {
+		this.s3RecordingEnabled = s3RecordingEnabled;
+	}
+
+	public String getS3SecretKey() {
+		return s3SecretKey;
+	}
+
+	public void setS3SecretKey(String s3SecretKey) { this.s3SecretKey = s3SecretKey; }
+
+	public String getS3AccessKey() {
+		return s3AccessKey;
+	}
+
+	public void setS3AccessKey(String s3AccessKey) {
+		this.s3AccessKey = s3AccessKey;
+	}
+
+	public String getS3RegionName() {
+		return s3RegionName;
+	}
+
+	public void setS3RegionName(String s3RegionName) {
+		this.s3RegionName = s3RegionName;
+	}
+
+	public String getS3BucketName() {
+		return s3BucketName;
+	}
+
+	public void setS3BucketName(String s3BucketName) {
+		this.s3BucketName = s3BucketName;
+	}
+
+	public String getS3Endpoint() {
+		return s3Endpoint;
+	}
+
+	public void setS3Endpoint(String s3Endpoint) {
+		this.s3Endpoint = s3Endpoint;
+	}
+
+
+
 	public void setDashHttpEndpoint(String dashHttpEndpoint) {
 		this.dashHttpEndpoint = dashHttpEndpoint;
 	}
+
 }
