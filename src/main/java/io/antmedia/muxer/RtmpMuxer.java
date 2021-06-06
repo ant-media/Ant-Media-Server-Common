@@ -198,6 +198,13 @@ public class RtmpMuxer extends Muxer {
 		return true;
 	}
 
+	/**
+	 * writeHeader and writeTrailer methods are synchronized. 
+	 * Because we have encountered some cases that while it's in writeHeader, writeTrailer is called. 
+	 * Then writeTrailer causes crash because of memory problem.
+	 * 
+	 * synchronized methods are not called at the same time from different threads
+	 */
 	private synchronized boolean writeHeader() {
 		long startTime = System.currentTimeMillis();
 		AVDictionary optionsDictionary = null;
@@ -234,6 +241,7 @@ public class RtmpMuxer extends Muxer {
 
 	/**
 	 * {@inheritDoc}
+	 * Look at the comments {@code writeHeader}
 	 */
 	@Override
 	public synchronized void writeTrailer() {
