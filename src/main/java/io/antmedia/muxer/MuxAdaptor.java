@@ -65,6 +65,7 @@ import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.muxer.parser.AACConfigParser;
 import io.antmedia.muxer.parser.AACConfigParser.AudioObjectTypes;
+import io.antmedia.settings.IServerSettings;
 import io.antmedia.muxer.parser.SpsParser;
 import io.antmedia.storage.StorageClient;
 import io.vertx.core.Vertx;
@@ -224,7 +225,9 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	private BytePointer videoExtraDataPointer;
 	private AtomicLong endpointStatusUpdaterTimer = new AtomicLong(-1l);
 	private ConcurrentHashMap<String, String> endpointStatusUpdateMap = new ConcurrentHashMap<>();
-
+	
+	private IServerSettings serverSettings;
+	
 	private static final int COUNT_TO_LOG_BUFFER = 500;
 
 	static {
@@ -337,7 +340,8 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		enableMp4Setting();
 		enableWebMSetting();
 		initVertx();
-
+		initServerSettings();		
+		
 		if (mp4MuxingEnabled) {
 			addMp4Muxer();
 			logger.info("adding MP4 Muxer, add datetime to file name {}", addDateTimeToMp4FileName);
@@ -372,7 +376,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 				dashMuxer = (Muxer) dashMuxerClass.getConstructors()[0].newInstance(vertx, dashFragmentDuration, dashSegDuration, targetLatency, deleteDASHFilesOnExit, !appSettings.getEncoderSettings().isEmpty(),
 							appSettings.getDashWindowSize(), appSettings.getDashExtraWindowSize(), appSettings.islLDashEnabled(), appSettings.islLHLSEnabled(),
-							appSettings.isHlsEnabledViaDash(), appSettings.isUseTimelineDashMuxing(), appSettings.isDashHttpStreaming(),appSettings.getDashHttpEndpoint());
+							appSettings.isHlsEnabledViaDash(), appSettings.isUseTimelineDashMuxing(), appSettings.isDashHttpStreaming(),appSettings.getDashHttpEndpoint(), serverSettings.getDefaultHttpPort());
 				
 				
 
@@ -396,6 +400,16 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		}
 		else {
 			logger.info("No vertx bean for stream {}", streamId);
+		}
+	}
+	
+	private void initServerSettings() {
+		if(scope.getContext().getApplicationContext().containsBean(IServerSettings.BEAN_NAME)) {
+			serverSettings = (IServerSettings)scope.getContext().getApplicationContext().getBean(IServerSettings.BEAN_NAME);
+			logger.info("serverSettings exist {}", serverSettings);
+		}
+		else {
+			logger.info("No serverSettings bean for stream {}", streamId);
 		}
 	}
 
