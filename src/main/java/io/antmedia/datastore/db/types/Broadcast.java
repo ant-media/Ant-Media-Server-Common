@@ -50,6 +50,12 @@ public class Broadcast {
 	private String type;
 
 	/**
+	 * "WebRTC", "RTMP", "Pull"
+	 */
+	@ApiModelProperty(value = "the publish type of the stream", allowableValues = "WebRTC, RTMP, Pull")
+	private String publishType;
+
+	/**
 	 * name of the broadcast
 	 */
 	@ApiModelProperty(value = "the name of the stream")
@@ -728,5 +734,12 @@ public class Broadcast {
 	
 	public String getPlayListStatus() {
 		return playListStatus;
+	}
+	public String getPublishType() {
+		return publishType;
+	}
+
+	public void setPublishType(String publishType) {
+		this.publishType = publishType;
 	}
 }

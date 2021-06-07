@@ -26,6 +26,7 @@ import static org.bytedeco.ffmpeg.global.avformat.avformat_new_stream;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_write_header;
 import static org.bytedeco.ffmpeg.global.avformat.avio_closep;
 import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_AUDIO;
+import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_DATA;
 import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_VIDEO;
 import static org.bytedeco.ffmpeg.global.avutil.AV_PIX_FMT_YUV420P;
 import static org.bytedeco.ffmpeg.global.avutil.AV_ROUND_NEAR_INF;
@@ -37,9 +38,7 @@ import static org.bytedeco.ffmpeg.global.avutil.av_rescale_q_rnd;
 import static org.bytedeco.ffmpeg.global.avutil.av_strerror;
 
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -65,7 +64,7 @@ import org.slf4j.LoggerFactory;
 public class RtmpMuxer extends Muxer {
 
 	protected static Logger logger = LoggerFactory.getLogger(RtmpMuxer.class);
-	private List<Integer> registeredStreamIndexList = new ArrayList<>();
+	
 	private String url;
 	private AVPacket videoPkt;
 	private Map<Integer, AVRational> codecTimeBaseMap = new HashMap<>();
@@ -78,6 +77,10 @@ public class RtmpMuxer extends Muxer {
 	private BytePointer allocatedExtraDataPointer = null;
 
 	private String status = IAntMediaStreamHandler.BROADCAST_STATUS_CREATED;
+	
+	boolean keyFrameReceived = false;
+	private int audioIndex;
+	private int videoIndex;
 
 	public RtmpMuxer(String url) {
 		super(null);
@@ -121,6 +124,7 @@ public class RtmpMuxer extends Muxer {
 		}
 		outStream.codecpar().codec_tag(0);
 		codecTimeBaseMap.put(streamIndex, codecContext.time_base());
+		logger.info("Adding stream index:{} for stream:{} codec type:{}", streamIndex, url, codecContext.codec_type());
 		setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING);
 		return true;
 
@@ -194,7 +198,14 @@ public class RtmpMuxer extends Muxer {
 		return true;
 	}
 
-	private boolean writeHeader() {
+	/**
+	 * writeHeader and writeTrailer methods are synchronized. 
+	 * Because we have encountered some cases that while it's in writeHeader, writeTrailer is called. 
+	 * Then writeTrailer causes crash because of memory problem.
+	 * 
+	 * synchronized methods are not called at the same time from different threads
+	 */
+	private synchronized boolean writeHeader() {
 		long startTime = System.currentTimeMillis();
 		AVDictionary optionsDictionary = null;
 
@@ -230,9 +241,10 @@ public class RtmpMuxer extends Muxer {
 
 	/**
 	 * {@inheritDoc}
+	 * Look at the comments {@code writeHeader}
 	 */
 	@Override
-	public void writeTrailer() {
+	public synchronized void writeTrailer() {
 
 		if (!isRunning.get() || outputFormatContext == null || outputFormatContext.pb() == null) {
 			//return if it is already null
@@ -358,6 +370,7 @@ public class RtmpMuxer extends Muxer {
 			outStream.time_base(bsfExtractdataContext.time_base_out());
 
 			codecTimeBaseMap.put(streamIndex, timeBase);
+			logger.info("Adding video stream index:{} for stream:{}", streamIndex, url);
 			result = true;
 		}
 
@@ -370,8 +383,33 @@ public class RtmpMuxer extends Muxer {
 	 */
 	@Override
 	public synchronized void writePacket(AVPacket pkt, AVStream stream) {
-		AVStream outStream = outputFormatContext.streams(pkt.stream_index());
+		if (!isRunning.get() || !registeredStreamIndexList.contains(pkt.stream_index()))  {
+			if (time2log % 100 == 0) {
+				logger.warn("not registered stream index {}", file.getName());
+				time2log = 0;
+			}
+			time2log++;
+			return;
+		}
+		int streamIndex;
+		if (stream.codecpar().codec_type() == AVMEDIA_TYPE_VIDEO) {
+			streamIndex = videoIndex;
+		}
+		else if (stream.codecpar().codec_type() == AVMEDIA_TYPE_AUDIO) {
+			streamIndex = audioIndex;
+		}
+		else {
+			logger.error("Undefined codec type for stream: {} ", url);
+			return;
+		}
+		
+		AVStream outStream = outputFormatContext.streams(streamIndex);
+		int index = pkt.stream_index();
+		pkt.stream_index(streamIndex);
+				
 		writePacket(pkt, stream.time_base(),  outStream.time_base(), outStream.codecpar().codec_type());
+		
+		pkt.stream_index(index);
 	}
 
 	/**
@@ -379,6 +417,15 @@ public class RtmpMuxer extends Muxer {
 	 */
 	@Override
 	public synchronized void writePacket(AVPacket pkt, AVCodecContext codecContext) {
+		if (!isRunning.get() || !registeredStreamIndexList.contains(pkt.stream_index()))  {
+			if (time2log % 100 == 0) {
+				logger.warn("not registered stream index {}", file.getName());
+				time2log = 0;
+			}
+			time2log++;
+			return;
+		}
+		
 		AVStream outStream = outputFormatContext.streams(pkt.stream_index());
 		AVRational codecTimebase = codecTimeBaseMap.get(pkt.stream_index());
 		writePacket(pkt, codecTimebase,  outStream.time_base(), outStream.codecpar().codec_type()); 
@@ -387,12 +434,6 @@ public class RtmpMuxer extends Muxer {
 
 	private void writePacket(AVPacket pkt, final AVRational inputTimebase, final AVRational outputTimebase, int codecType) 
 	{
-
-		if (!isRunning.get() || !registeredStreamIndexList.contains(pkt.stream_index())) {
-			logger.info("Not writing to muxer because it's not started for {}", url);
-			return;
-		}
-
 		final AVFormatContext context = getOutputFormatContext();
 		if (context.streams(pkt.stream_index()).codecpar().codec_type() ==  AVMEDIA_TYPE_AUDIO && !headerWritten) {
 			//Opening the RTMP muxer may take some time and don't make audio queue increase
@@ -458,11 +499,10 @@ public class RtmpMuxer extends Muxer {
 							byte[] data = new byte[128];
 							av_strerror(ret, data, data.length);
 							setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_ERROR);
-							logger.info("cannot write video frame to muxer. Error: {} stream: {}", new String(data, 0, data.length), file != null ? file.getName() : " no name");
+							logger.info("cannot write video frame to muxer. Error: {} stream: {} pkt.dts: {}", new String(data, 0, data.length), file != null ? file.getName() : " no name", tmpPacket.dts());
 						}
 						else{
 							setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
-
 						}
 					}
 					else {
@@ -478,7 +518,7 @@ public class RtmpMuxer extends Muxer {
 					byte[] data = new byte[128];
 					av_strerror(ret, data, data.length);
 					setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_ERROR);
-					logger.info("cannot write video frame to muxer. Error: {} stream: {}", new String(data, 0, data.length), file != null ? file.getName() : "no name");
+					logger.info("cannot write video frame to muxer. Error: {} stream: {} codec type: {} index: {} pkt.dts:{}", new String(data, 0, data.length), file != null ? file.getName() : "no name", codecType, pkt.stream_index(), tmpPacket.dts());
 				}
 			}
 			av_packet_unref(tmpPacket);
@@ -492,7 +532,7 @@ public class RtmpMuxer extends Muxer {
 					byte[] data = new byte[128];
 					av_strerror(ret, data, data.length);
 					setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_ERROR);
-					logger.info("cannot write frame(not video) to muxer. Error is {} ", new String(data, 0, data.length));
+					logger.info("cannot write frame to muxer(not video). Error: {} stream: {} codec type: {} index: {} pkt.dts:{}", new String(data, 0, data.length), file != null ? file.getName() : "no name", codecType, pkt.stream_index(), pkt.dts());
 				}
 			}
 		}
@@ -502,8 +542,6 @@ public class RtmpMuxer extends Muxer {
 		pkt.duration(duration);
 		pkt.pos(pos);
 	}
-
-	boolean keyFrameReceived = false;
 
 	@Override
 	public synchronized void writeVideoBuffer(ByteBuffer encodedVideoFrame, long dts, int frameRotation, int streamIndex,
@@ -546,22 +584,39 @@ public class RtmpMuxer extends Muxer {
 
 
 	@Override
-	public boolean addStream(AVCodecParameters codecParameters, AVRational timebase) {
+	public boolean addStream(AVCodecParameters codecParameters, AVRational timebase, int streamIndex) {
 		boolean result = false;
 		AVFormatContext outputContext = getOutputFormatContext();
-		if (outputContext != null) 
+		if (outputContext != null 
+				&& (codecParameters.codec_type() == AVMEDIA_TYPE_AUDIO || codecParameters.codec_type() == AVMEDIA_TYPE_VIDEO)) 
 		{
 			AVStream outStream = avformat_new_stream(outputContext, null);
-
+			
 			avcodec_parameters_copy(outStream.codecpar(), codecParameters);
 			outStream.time_base(timebase);
 			codecTimeBaseMap.put(outStream.index(), timebase);
-			registeredStreamIndexList.add(outStream.index());
+			registeredStreamIndexList.add(streamIndex);
+			if (codecParameters.codec_type() == AVMEDIA_TYPE_AUDIO) 
+			{
+				audioIndex = outStream.index();
+			}
+			else {
+				videoIndex = outStream.index();
+			}
+			
+			result = true;
+		}
+		else if (codecParameters.codec_type() == AVMEDIA_TYPE_DATA) {
+			//if it's data, do not add and return true
 			result = true;
 		}
 
 		return result;
 	}
+	
+
+	
+	
 
 	@Override
 	public void writeAudioBuffer(ByteBuffer audioFrame, int streamIndex, long timestamp) {
@@ -587,9 +642,7 @@ public class RtmpMuxer extends Muxer {
 		writePacket(audioPkt, (AVCodecContext)null);
 		av_packet_unref(audioPkt);
 	}
-
-
-
+	
 
 
 }

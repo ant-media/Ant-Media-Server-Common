@@ -70,4 +70,6 @@ public interface IAntMediaStreamHandler {
 	 * @return true if server is shutting down
 	 */
 	public boolean isServerShuttingDown();
+
+	public void startPublish(String streamName, long absoluteStartTimeMs, String publishType);
 }
