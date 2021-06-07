@@ -43,12 +43,15 @@ import java.io.FilenameFilter;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.tika.utils.ExceptionUtils;
 import org.bytedeco.ffmpeg.avcodec.AVBSFContext;
 import org.bytedeco.ffmpeg.avcodec.AVBitStreamFilter;
 import org.bytedeco.ffmpeg.avcodec.AVCodec;
@@ -68,7 +71,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.vertx.core.Vertx;
-
 
 public class HLSMuxer extends Muxer  {
 
@@ -97,11 +99,20 @@ public class HLSMuxer extends Muxer  {
 	private int videoIndex;
 	private String hlsFlags;
 	
+	private boolean hlsEncryptionEnabled = false;
+	private String hlsEncryptionKey;
+	private String hlsEncryptionKeyUrl;
+	private String hlsEncryptionIv;
+	
+	private String appName;
+	private String hostAddress;
+	
+	
 	private Map<Integer, AVRational> codecTimeBaseMap = new HashMap<>();
 	private AVPacket videoPkt;
 
 
-	public HLSMuxer(Vertx vertx, String hlsListSize, String hlsTime, String hlsPlayListType, String hlsFlags) {
+	public HLSMuxer(Vertx vertx, String hlsListSize, String hlsTime, String hlsPlayListType, String hlsFlags, boolean hlsEncryptionEnabled, String hlsEncryptionKey, String hlsEncryptionKeyUrl, String hlsEncryptionIv, String appName, String hostAddress) {
 		super(vertx);
 		extension = ".m3u8";
 		format = "hls";
@@ -124,6 +135,30 @@ public class HLSMuxer extends Muxer  {
 		else {
 			this.hlsFlags = "";
 		}
+		
+		if(hlsEncryptionEnabled) {
+			this.hlsEncryptionEnabled = hlsEncryptionEnabled;
+		}
+		
+		if (hlsEncryptionKey != null) {
+			this.hlsEncryptionKey = hlsEncryptionKey;
+		}
+		
+		if (hlsEncryptionKeyUrl != null) {
+			this.hlsEncryptionKeyUrl = hlsEncryptionKeyUrl;
+		}
+		
+		if (hlsEncryptionIv != null) {
+			this.hlsEncryptionIv = hlsEncryptionIv;
+		}
+		
+		if (appName != null) {
+			this.appName = appName;
+		}
+		
+		if (hostAddress != null) {
+			this.hostAddress = hostAddress;
+		}
 
 		avRationalTimeBase = new AVRational();
 		avRationalTimeBase.num(1);
@@ -141,7 +176,26 @@ public class HLSMuxer extends Muxer  {
 			options.put("hls_list_size", hlsListSize);
 			options.put("hls_time", hlsTime);
 			
+			if(hlsEncryptionEnabled) {
+				options.put("hls_enc", "1");
+			}
 			
+			if(hlsEncryptionEnabled && hlsEncryptionKeyUrl == null ) {
+				createLocalKeyFile(hlsEncryptionKey);
+			}
+			
+			if(hlsEncryptionKey != null) {
+				options.put("hls_enc_key", hlsEncryptionKey);
+			}
+			
+			if(hlsEncryptionKeyUrl != null) {
+				options.put("hls_enc_key_url", hlsEncryptionKeyUrl);			
+			}
+			
+			if(hlsEncryptionIv != null) {
+				options.put("hls_enc_iv", hlsEncryptionIv);			
+			}
+
 			logger.info("hls time: {}, hls list size: {}", hlsTime, hlsListSize);
 
 			String segmentFilename = file.getParentFile() + "/" + name +"_" + resolutionHeight +"p"+ "%04d.ts";
@@ -164,6 +218,25 @@ public class HLSMuxer extends Muxer  {
 			isInitialized = true;
 		}
 
+	}
+	
+	public void createLocalKeyFile(String hlsEncryptionKey){
+		if(hlsEncryptionKey == null) {
+			hlsEncryptionKey = RandomStringUtils.randomAlphabetic(16);
+		}
+		String keyAbsolutePath = "webapps/" + appName+"/streams/" + "stream.key";
+		hlsEncryptionKeyUrl = "http://"+hostAddress+":5080/" + scope.getName() + "/streams/stream.key";
+		writeToFile(keyAbsolutePath, hlsEncryptionKey);
+	}
+	
+	public static void writeToFile(String absolutePath, String content) {
+		try {
+			Files.write(new File(absolutePath).toPath(), content.getBytes(), StandardOpenOption.CREATE);
+		} catch (IOException e) {
+			if (logger != null) {
+				logger.error(e.toString());
+			}
+		}
 	}
 
 	private AVFormatContext getOutputFormatContext() {
@@ -572,7 +645,8 @@ public class HLSMuxer extends Muxer  {
 			for (String key : keySet) {
 				av_dict_set(optionsDictionary, key, options.get(key), 0);
 			}
-		}
+		}		
+		
 		ret = avformat_write_header(context, optionsDictionary);		
 		if (ret < 0 && logger.isWarnEnabled()) {
 			byte[] data = new byte[1024];

@@ -65,6 +65,7 @@ import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.muxer.parser.AACConfigParser;
 import io.antmedia.muxer.parser.AACConfigParser.AudioObjectTypes;
+import io.antmedia.settings.IServerSettings;
 import io.antmedia.muxer.parser.SpsParser;
 import io.antmedia.storage.StorageClient;
 import io.vertx.core.Vertx;
@@ -160,6 +161,8 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	private int firstReceivedFrameTimestamp = -1;
 	protected int totalIngestedVideoPacketCount = 0;
 	private long bufferTimeMs = 0;
+	
+	private IServerSettings serverSettings;
 
 	/**
 	 * Packet times in ordered way to calculate streaming health
@@ -333,6 +336,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 		getDataStore();
 		enableSettings();
+		initServerSettings();
 		initStorageClient();
 		enableMp4Setting();
 		enableWebMSetting();
@@ -344,7 +348,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		}
 
 		if (hlsMuxingEnabled) {
-			HLSMuxer hlsMuxer = new HLSMuxer(vertx, hlsListSize, hlsTime, hlsPlayListType, getAppSettings().getHlsFlags());
+			HLSMuxer hlsMuxer = new HLSMuxer(vertx, hlsListSize, hlsTime, hlsPlayListType, getAppSettings().getHlsFlags(), getAppSettings().isHlsEncryptionEnabled(), getAppSettings().getHlsEncryptionKey(), getAppSettings().getHlsEncryptionKeyUrl(), getAppSettings().getHlsEncryptionIv(), getAppSettings().getAppName(), serverSettings.getHostAddress());
 			hlsMuxer.setDeleteFileOnExit(deleteHLSFilesOnExit);
 			addMuxer(hlsMuxer);
 			logger.info("adding HLS Muxer for {}", streamId);
@@ -360,6 +364,16 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		}
 		getStreamHandler().muxAdaptorAdded(this);
 		return true;
+	}
+	
+	private void initServerSettings() {
+		if(scope.getContext().getApplicationContext().containsBean(IServerSettings.BEAN_NAME)) {
+			serverSettings = (IServerSettings)scope.getContext().getApplicationContext().getBean(IServerSettings.BEAN_NAME);
+			logger.info("serverSettings exist {}", serverSettings);
+		}
+		else {
+			logger.info("No serverSettings bean for stream {}", streamId);
+		}
 	}
 
 	public Muxer getDashMuxer() 
