@@ -9,4 +9,10 @@ public interface IServerSettings {
 	 */
 	public String getHostAddress();
 
+	/**
+	 * Server default HTTP port
+	 * It's 5080 by default
+	 * @return default HTTP port
+	 */
+	public int getDefaultHttpPort();
 }

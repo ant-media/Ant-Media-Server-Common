@@ -1007,7 +1007,7 @@ public class AppSettings {
 	/**
 	 * Max analyze duration in for determining video and audio existence in RTMP streams
 	 */
-	@Value("${" + SETTINGS_RTMP_MAX_ANALYZE_DURATION_MS+ ":1000}")
+	@Value("${" + SETTINGS_RTMP_MAX_ANALYZE_DURATION_MS+ ":2500}")
 	private int maxAnalyzeDurationMS;
 	
 	/**
