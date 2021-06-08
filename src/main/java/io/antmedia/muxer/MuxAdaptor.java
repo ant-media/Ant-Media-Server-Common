@@ -226,7 +226,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	private AtomicLong endpointStatusUpdaterTimer = new AtomicLong(-1l);
 	private ConcurrentHashMap<String, String> endpointStatusUpdateMap = new ConcurrentHashMap<>();
 	
-	private IServerSettings serverSettings;
+	protected IServerSettings serverSettings;
 	
 	private static final int COUNT_TO_LOG_BUFFER = 500;
 
@@ -403,7 +403,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		}
 	}
 	
-	private void initServerSettings() {
+	protected void initServerSettings() {
 		if(scope.getContext().getApplicationContext().containsBean(IServerSettings.BEAN_NAME)) {
 			serverSettings = (IServerSettings)scope.getContext().getApplicationContext().getBean(IServerSettings.BEAN_NAME);
 			logger.info("serverSettings exist {}", serverSettings);
