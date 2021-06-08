@@ -161,6 +161,8 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	private int firstReceivedFrameTimestamp = -1;
 	protected int totalIngestedVideoPacketCount = 0;
 	private long bufferTimeMs = 0;
+	
+	private IServerSettings serverSettings;
 
 	/**
 	 * Packet times in ordered way to calculate streaming health
@@ -226,7 +228,6 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	private AtomicLong endpointStatusUpdaterTimer = new AtomicLong(-1l);
 	private ConcurrentHashMap<String, String> endpointStatusUpdateMap = new ConcurrentHashMap<>();
 	
-	protected IServerSettings serverSettings;
 	
 	private static final int COUNT_TO_LOG_BUFFER = 500;
 
@@ -336,6 +337,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 		getDataStore();
 		enableSettings();
+		initServerSettings();
 		initStorageClient();
 		enableMp4Setting();
 		enableWebMSetting();
@@ -348,7 +350,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		}
 
 		if (hlsMuxingEnabled) {
-			HLSMuxer hlsMuxer = new HLSMuxer(vertx, hlsListSize, hlsTime, hlsPlayListType, getAppSettings().getHlsFlags());
+			HLSMuxer hlsMuxer = new HLSMuxer(vertx, hlsListSize, hlsTime, hlsPlayListType, getAppSettings().getHlsFlags(), getAppSettings().isHlsEncryptionEnabled(), getAppSettings().getHlsEncryptionKey(), getAppSettings().getHlsEncryptionKeyUrl(), getAppSettings().getHlsEncryptionIv(), getAppSettings().getAppName(), serverSettings.getHostAddress());
 			hlsMuxer.setDeleteFileOnExit(deleteHLSFilesOnExit);
 			addMuxer(hlsMuxer);
 			logger.info("adding HLS Muxer for {}", streamId);
@@ -402,7 +404,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			logger.info("No vertx bean for stream {}", streamId);
 		}
 	}
-	
+
 	protected void initServerSettings() {
 		if(scope.getContext().getApplicationContext().containsBean(IServerSettings.BEAN_NAME)) {
 			serverSettings = (IServerSettings)scope.getContext().getApplicationContext().getBean(IServerSettings.BEAN_NAME);
