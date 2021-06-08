@@ -27,7 +27,7 @@ import com.amazonaws.services.s3.transfer.Upload;
 public class AmazonS3StorageClient extends StorageClient {
 
 	private AmazonS3 amazonS3;
-	
+
 	protected static Logger logger = LoggerFactory.getLogger(AmazonS3StorageClient.class);
 
 	private AmazonS3 getAmazonS3() {
@@ -44,88 +44,110 @@ public class AmazonS3StorageClient extends StorageClient {
 				BasicAWSCredentials awsCredentials = new BasicAWSCredentials(getAccessKey(), getSecretKey());
 				builder = builder.withCredentials(new AWSStaticCredentialsProvider(awsCredentials));
 			}
-			
+
 			// Inject region if provided in the configuration file
 			if (getEndpoint() == null && getRegion() != null) {
 				builder = builder.withRegion(Regions.fromName(getRegion()));
 			}
 			builder.withClientConfiguration(new ClientConfiguration().withMaxConnections(100)
-	                .withConnectionTimeout(120 * 1000)
-	                .withMaxErrorRetry(15));
-			
+					.withConnectionTimeout(120 * 1000)
+					.withMaxErrorRetry(15));
+
 			amazonS3 = builder.build();
 		}
 		return amazonS3; 
 	}
 
-	
+
 	public void delete(String fileName, FileType type) {
-		AmazonS3 s3 = getAmazonS3();
-		s3.deleteObject(getStorageName(), type.getValue() + "/" + fileName);
-		
+		if (isEnabled()) {
+			AmazonS3 s3 = getAmazonS3();
+			s3.deleteObject(getStorageName(), type.getValue() + "/" + fileName);
+		}
+		else {
+			logger.debug("S3 is not enabled to delete the file: {}", fileName);
+		}
+
 	}
-	
+
 	public boolean fileExist(String fileName, FileType type) {
-		AmazonS3 s3 = getAmazonS3();
-		return s3.doesObjectExist(getStorageName(), type.getValue() + "/" + fileName); 
+		if (isEnabled()) {
+			AmazonS3 s3 = getAmazonS3();
+			return s3.doesObjectExist(getStorageName(), type.getValue() + "/" + fileName); 
+		}
+		else {
+			logger.debug("S3 is not enabled to check the file existence: {}", fileName);
+		}
+		return false;
 	}
-	
+
 	public boolean fileExist(String key) {
-		return getAmazonS3().doesObjectExist(getStorageName(), key);
+		if (isEnabled()) {
+			return getAmazonS3().doesObjectExist(getStorageName(), key);
+		}
+		else {
+			logger.debug("S3 is not enabled to check the file existence: {}", key);
+		}
+		return false;
 	}
-	
+
 	public void save(final File file, FileType type) {
 		save(type.getValue() + "/" + file.getName(), file);
 	}
-	
+
 	public void save(String key, File file)
 	{	
-		AmazonS3 s3 = getAmazonS3();
-		
-		TransferManager tm = TransferManagerBuilder.standard()
-                .withS3Client(s3)
-                .build();
-		
-		PutObjectRequest putRequest = new PutObjectRequest(getStorageName(), key, file);
-		
-		
-		putRequest.setCannedAcl(getCannedAcl());
-	
-		
-		Upload upload = tm.upload(putRequest);
-        // TransferManager processes all transfers asynchronously,
-        // so this call returns immediately.
-        //Upload upload = tm.upload(getStorageName(), key, file);
-        logger.info("Mp4 {} upload has started with key: {}", file.getName(), key);
-        
-        upload.addProgressListener((ProgressListener) event -> 
-        {
-			if (event.getEventType() == ProgressEventType.TRANSFER_FAILED_EVENT){
-				logger.error("S3 - Error: Upload failed for {} with key {}", file.getName(), key);
-			}
-			else if (event.getEventType() == ProgressEventType.TRANSFER_COMPLETED_EVENT){
-				try {
-					Files.delete(file.toPath());
-				} catch (IOException e) {
-					logger.error(ExceptionUtils.getStackTrace(e));
-				}
-				logger.info("File {} uploaded to S3 with key: {}", file.getName(), key);
-			}
-		});
-        
+		if (isEnabled()) {
+			AmazonS3 s3 = getAmazonS3();
 
-        // Optionally, wait for the upload to finish before continuing.
-        try {  
-			upload.waitForCompletion();
-			
-			logger.info("Mp4 {} upload completed", file.getName());
-		} catch (AmazonServiceException e1) {
-			logger.error(ExceptionUtils.getStackTrace(e1));
-		} catch (InterruptedException e1) {
-			logger.error(ExceptionUtils.getStackTrace(e1));
-			Thread.currentThread().interrupt();
+			TransferManager tm = TransferManagerBuilder.standard()
+					.withS3Client(s3)
+					.build();
+
+			PutObjectRequest putRequest = new PutObjectRequest(getStorageName(), key, file);
+
+
+			putRequest.setCannedAcl(getCannedAcl());
+
+
+			Upload upload = tm.upload(putRequest);
+			// TransferManager processes all transfers asynchronously,
+			// so this call returns immediately.
+			//Upload upload = tm.upload(getStorageName(), key, file);
+			logger.info("Mp4 {} upload has started with key: {}", file.getName(), key);
+
+			upload.addProgressListener((ProgressListener) event -> 
+			{
+				if (event.getEventType() == ProgressEventType.TRANSFER_FAILED_EVENT){
+					logger.error("S3 - Error: Upload failed for {} with key {}", file.getName(), key);
+				}
+				else if (event.getEventType() == ProgressEventType.TRANSFER_COMPLETED_EVENT){
+					try {
+						Files.delete(file.toPath());
+					} catch (IOException e) {
+						logger.error(ExceptionUtils.getStackTrace(e));
+					}
+					logger.info("File {} uploaded to S3 with key: {}", file.getName(), key);
+				}
+			});
+
+
+			// Optionally, wait for the upload to finish before continuing.
+			try {  
+				upload.waitForCompletion();
+
+				logger.info("Mp4 {} upload completed", file.getName());
+			} catch (AmazonServiceException e1) {
+				logger.error(ExceptionUtils.getStackTrace(e1));
+			} catch (InterruptedException e1) {
+				logger.error(ExceptionUtils.getStackTrace(e1));
+				Thread.currentThread().interrupt();
+			}
 		}
-        
+		else {
+			logger.debug("S3 is not enabled to save the file: {}", key);
+		}
+
 	}
 
 
