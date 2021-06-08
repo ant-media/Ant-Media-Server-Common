@@ -162,7 +162,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	protected int totalIngestedVideoPacketCount = 0;
 	private long bufferTimeMs = 0;
 	
-	private IServerSettings serverSettings;
+	protected IServerSettings serverSettings;
 
 	/**
 	 * Packet times in ordered way to calculate streaming health
