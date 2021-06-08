@@ -367,16 +367,6 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		getStreamHandler().muxAdaptorAdded(this);
 		return true;
 	}
-	
-	private void initServerSettings() {
-		if(scope.getContext().getApplicationContext().containsBean(IServerSettings.BEAN_NAME)) {
-			serverSettings = (IServerSettings)scope.getContext().getApplicationContext().getBean(IServerSettings.BEAN_NAME);
-			logger.info("serverSettings exist {}", serverSettings);
-		}
-		else {
-			logger.info("No serverSettings bean for stream {}", streamId);
-		}
-	}
 
 	public Muxer getDashMuxer() 
 	{
@@ -414,7 +404,16 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			logger.info("No vertx bean for stream {}", streamId);
 		}
 	}
-	
+
+	protected void initServerSettings() {
+		if(scope.getContext().getApplicationContext().containsBean(IServerSettings.BEAN_NAME)) {
+			serverSettings = (IServerSettings)scope.getContext().getApplicationContext().getBean(IServerSettings.BEAN_NAME);
+			logger.info("serverSettings exist {}", serverSettings);
+		}
+		else {
+			logger.info("No serverSettings bean for stream {}", streamId);
+		}
+	}
 
 	protected void enableMp4Setting() {
 		broadcast = getBroadcast();
