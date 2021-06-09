@@ -35,7 +35,7 @@ public class AmazonS3StorageClient extends StorageClient {
 			AmazonS3ClientBuilder builder = AmazonS3ClientBuilder.standard();
 
 			// Inject endpoint if provided in the configuration file
-			if (getEndpoint() != null && getRegion() != null) {
+			if (getEndpoint() != null && !getEndpoint().isEmpty() && getRegion() != null) {
 				builder = builder.withEndpointConfiguration(new AwsClientBuilder.EndpointConfiguration(getEndpoint(), getRegion()));
 			}
 
@@ -46,7 +46,7 @@ public class AmazonS3StorageClient extends StorageClient {
 			}
 
 			// Inject region if provided in the configuration file
-			if (getEndpoint() == null && getRegion() != null) {
+			if ((getEndpoint() == null || getEndpoint().isEmpty()) && getRegion() != null) {
 				builder = builder.withRegion(Regions.fromName(getRegion()));
 			}
 			builder.withClientConfiguration(new ClientConfiguration().withMaxConnections(100)
@@ -60,11 +60,13 @@ public class AmazonS3StorageClient extends StorageClient {
 
 
 	public void delete(String fileName, FileType type) {
-		if (isEnabled()) {
+		if (isEnabled()) 
+		{
 			AmazonS3 s3 = getAmazonS3();
 			s3.deleteObject(getStorageName(), type.getValue() + "/" + fileName);
 		}
-		else {
+		else 
+		{
 			logger.debug("S3 is not enabled to delete the file: {}", fileName);
 		}
 
