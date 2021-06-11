@@ -100,20 +100,13 @@ public class HLSMuxer extends Muxer  {
 	private String hlsFlags;
 	
 	private boolean hlsEncryptionEnabled = false;
-	private String hlsEncryptionKey;
-	private String hlsEncryptionKeyUrl;
-	private String hlsEncryptionIv;
-	
-	private String appName;
-	private String hostAddress;
-	private int defaultHttpPort = 5080;
-	
+	private String hlsEncryptionKeyInfoFile = null;
 	
 	private Map<Integer, AVRational> codecTimeBaseMap = new HashMap<>();
 	private AVPacket videoPkt;
 
 
-	public HLSMuxer(Vertx vertx, String hlsListSize, String hlsTime, String hlsPlayListType, String hlsFlags, boolean hlsEncryptionEnabled, String hlsEncryptionKey, String hlsEncryptionKeyUrl, String hlsEncryptionIv, String appName, String hostAddress,int defaultHttpPort) {
+	public HLSMuxer(Vertx vertx, String hlsListSize, String hlsTime, String hlsPlayListType, String hlsFlags, boolean hlsEncryptionEnabled, String hlsEncryptionKeyInfoFile) {
 		super(vertx);
 		extension = ".m3u8";
 		format = "hls";
@@ -141,29 +134,9 @@ public class HLSMuxer extends Muxer  {
 			this.hlsEncryptionEnabled = hlsEncryptionEnabled;
 		}
 		
-		if (hlsEncryptionKey != null) {
-			this.hlsEncryptionKey = hlsEncryptionKey;
-		}
-		
-		if (hlsEncryptionKeyUrl != null) {
-			this.hlsEncryptionKeyUrl = hlsEncryptionKeyUrl;
-		}
-		
-		if (hlsEncryptionIv != null) {
-			this.hlsEncryptionIv = hlsEncryptionIv;
-		}
-		
-		if (appName != null) {
-			this.appName = appName;
-		}
-		
-		if (hostAddress != null) {
-			this.hostAddress = hostAddress;
-		}
-		
-		if(defaultHttpPort != 5080) {
-			this.defaultHttpPort = defaultHttpPort;
-		}
+		if (hlsEncryptionKeyInfoFile != null && !hlsEncryptionKeyInfoFile.isEmpty()) {
+			this.hlsEncryptionKeyInfoFile = hlsEncryptionKeyInfoFile;
+		}		
 
 		avRationalTimeBase = new AVRational();
 		avRationalTimeBase.num(1);
@@ -181,25 +154,15 @@ public class HLSMuxer extends Muxer  {
 			options.put("hls_list_size", hlsListSize);
 			options.put("hls_time", hlsTime);
 			
+			/*
 			if(hlsEncryptionEnabled) {
 				options.put("hls_enc", "1");
 			}
-			
-			if(hlsEncryptionEnabled && hlsEncryptionKeyUrl == null ) {
-				createLocalKeyFile();
+			*/
+			if(hlsEncryptionKeyInfoFile != null) {
+				options.put("hls_key_info_file", hlsEncryptionKeyInfoFile);
 			}
-			
-			if(hlsEncryptionKey != null) {
-				options.put("hls_enc_key", hlsEncryptionKey);
-			}
-			
-			if(hlsEncryptionKeyUrl != null) {
-				options.put("hls_enc_key_url", hlsEncryptionKeyUrl);			
-			}
-			
-			if(hlsEncryptionIv != null) {
-				options.put("hls_enc_iv", hlsEncryptionIv);			
-			}
+
 
 			logger.info("hls time: {}, hls list size: {}", hlsTime, hlsListSize);
 
@@ -223,15 +186,6 @@ public class HLSMuxer extends Muxer  {
 			isInitialized = true;
 		}
 
-	}
-	
-	public void createLocalKeyFile(){
-		if(hlsEncryptionKey == null) {
-			hlsEncryptionKey = RandomStringUtils.randomAlphabetic(32);
-		}
-		String keyAbsolutePath = "webapps/" + appName+"/streams/" + "stream.key";
-		hlsEncryptionKeyUrl = "http://"+hostAddress+":"+defaultHttpPort+"/" + scope.getName() + "/streams/stream.key";
-		writeToFile(keyAbsolutePath, hlsEncryptionKey);
 	}
 	
 	public static void writeToFile(String absolutePath, String content) {
