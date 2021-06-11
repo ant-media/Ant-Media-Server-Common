@@ -99,7 +99,6 @@ public class HLSMuxer extends Muxer  {
 	private int videoIndex;
 	private String hlsFlags;
 	
-	private boolean hlsEncryptionEnabled = false;
 	private String hlsEncryptionKeyInfoFile = null;
 	
 	private Map<Integer, AVRational> codecTimeBaseMap = new HashMap<>();
@@ -128,10 +127,6 @@ public class HLSMuxer extends Muxer  {
 		}
 		else {
 			this.hlsFlags = "";
-		}
-		
-		if(hlsEncryptionEnabled) {
-			this.hlsEncryptionEnabled = hlsEncryptionEnabled;
 		}
 		
 		if (hlsEncryptionKeyInfoFile != null && !hlsEncryptionKeyInfoFile.isEmpty()) {
