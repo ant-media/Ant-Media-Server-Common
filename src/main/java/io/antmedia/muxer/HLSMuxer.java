@@ -106,13 +106,14 @@ public class HLSMuxer extends Muxer  {
 	
 	private String appName;
 	private String hostAddress;
+	private int defaultHttpPort = 5080;
 	
 	
 	private Map<Integer, AVRational> codecTimeBaseMap = new HashMap<>();
 	private AVPacket videoPkt;
 
 
-	public HLSMuxer(Vertx vertx, String hlsListSize, String hlsTime, String hlsPlayListType, String hlsFlags, boolean hlsEncryptionEnabled, String hlsEncryptionKey, String hlsEncryptionKeyUrl, String hlsEncryptionIv, String appName, String hostAddress) {
+	public HLSMuxer(Vertx vertx, String hlsListSize, String hlsTime, String hlsPlayListType, String hlsFlags, boolean hlsEncryptionEnabled, String hlsEncryptionKey, String hlsEncryptionKeyUrl, String hlsEncryptionIv, String appName, String hostAddress,int defaultHttpPort) {
 		super(vertx);
 		extension = ".m3u8";
 		format = "hls";
@@ -159,6 +160,10 @@ public class HLSMuxer extends Muxer  {
 		if (hostAddress != null) {
 			this.hostAddress = hostAddress;
 		}
+		
+		if(defaultHttpPort != 5080) {
+			this.defaultHttpPort = defaultHttpPort;
+		}
 
 		avRationalTimeBase = new AVRational();
 		avRationalTimeBase.num(1);
@@ -181,7 +186,7 @@ public class HLSMuxer extends Muxer  {
 			}
 			
 			if(hlsEncryptionEnabled && hlsEncryptionKeyUrl == null ) {
-				createLocalKeyFile(hlsEncryptionKey);
+				createLocalKeyFile();
 			}
 			
 			if(hlsEncryptionKey != null) {
@@ -220,12 +225,12 @@ public class HLSMuxer extends Muxer  {
 
 	}
 	
-	public void createLocalKeyFile(String hlsEncryptionKey){
+	public void createLocalKeyFile(){
 		if(hlsEncryptionKey == null) {
-			hlsEncryptionKey = RandomStringUtils.randomAlphabetic(16);
+			hlsEncryptionKey = RandomStringUtils.randomAlphabetic(32);
 		}
 		String keyAbsolutePath = "webapps/" + appName+"/streams/" + "stream.key";
-		hlsEncryptionKeyUrl = "http://"+hostAddress+":5080/" + scope.getName() + "/streams/stream.key";
+		hlsEncryptionKeyUrl = "http://"+hostAddress+":"+defaultHttpPort+"/" + scope.getName() + "/streams/stream.key";
 		writeToFile(keyAbsolutePath, hlsEncryptionKey);
 	}
 	

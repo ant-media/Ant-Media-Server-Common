@@ -350,7 +350,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		}
 
 		if (hlsMuxingEnabled) {
-			HLSMuxer hlsMuxer = new HLSMuxer(vertx, hlsListSize, hlsTime, hlsPlayListType, getAppSettings().getHlsFlags(), getAppSettings().isHlsEncryptionEnabled(), getAppSettings().getHlsEncryptionKey(), getAppSettings().getHlsEncryptionKeyUrl(), getAppSettings().getHlsEncryptionIv(), getAppSettings().getAppName(), serverSettings.getHostAddress());
+			HLSMuxer hlsMuxer = new HLSMuxer(vertx, hlsListSize, hlsTime, hlsPlayListType, getAppSettings().getHlsFlags(), getAppSettings().isHlsEncryptionEnabled(), getAppSettings().getHlsEncryptionKey(), getAppSettings().getHlsEncryptionKeyUrl(), getAppSettings().getHlsEncryptionIv(), getAppSettings().getAppName(), serverSettings.getHostAddress(),serverSettings.getDefaultHttpPort());
 			hlsMuxer.setDeleteFileOnExit(deleteHLSFilesOnExit);
 			addMuxer(hlsMuxer);
 			logger.info("adding HLS Muxer for {}", streamId);
