@@ -22,10 +22,28 @@ public abstract class StorageClient {
 		}
 	}
 
+	/**
+	 * Endpoint for the storage, it's optional and it's used in some platforms like Digital Ocean, Wasabi, OVH
+	 */
 	private String endpoint;
+	
+	/**
+	 * Access key to access the storage
+	 */
 	private String accessKey;
+	/**
+	 * Secret key for the storage
+	 */
 	private String secretKey;
+	
+	/**
+	 * The region of the storage. It's like us-west-1 in S3
+	 */
 	private String region;
+	
+	/**
+	 * Name of the storage. It's bucketname for S3
+	 */
 	private String storageName;
 	
 	/**
@@ -33,6 +51,8 @@ public abstract class StorageClient {
 	 * It may differ according to the implemenation. Default value is public-read
 	 */
 	private String permission = "public-read";
+
+	private boolean enabled;
 
 	
 	/**
@@ -124,5 +144,13 @@ public abstract class StorageClient {
 	
 	public String getPermission() {
 		return permission;
+	}
+	
+	public boolean isEnabled() {
+		return enabled;
+	}
+	
+	public void setEnabled(boolean enabled) {
+		this.enabled = enabled;
 	}
 }

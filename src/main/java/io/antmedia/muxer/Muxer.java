@@ -9,7 +9,9 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -63,6 +65,8 @@ public abstract class Muxer {
 	private static Logger logger = LoggerFactory.getLogger(Muxer.class);
 
 	protected AVFormatContext outputFormatContext;
+	
+	public static final String DATE_TIME_PATTERN = "yyyy-MM-dd_HH-mm-ss.SSS";
 
 	protected File file;
 
@@ -82,6 +86,7 @@ public abstract class Muxer {
 	
 	protected AVPacket audioPkt;
 
+	protected List<Integer> registeredStreamIndexList = new ArrayList<>();
 	/**
 	 * Bitstream filter name that will be applied to packets
 	 */
@@ -256,9 +261,9 @@ public abstract class Muxer {
 
 				LocalDateTime ldt =  LocalDateTime.now();
 
-				resourceName = name + "-" + ldt.format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss.SSS"));
+				resourceName = name + "-" + ldt.format(DateTimeFormatter.ofPattern(DATE_TIME_PATTERN));
 				if (logger.isInfoEnabled()) {
-					logger.info("Date time resource name: {} local date time: {}", resourceName, ldt.format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH:mm:ss.SSS")));
+					logger.info("Date time resource name: {} local date time: {}", resourceName, ldt.format(DateTimeFormatter.ofPattern(DATE_TIME_PATTERN)));
 				}
 			}
 
@@ -338,16 +343,35 @@ public abstract class Muxer {
 		return false;
 	}
 
+	/**
+	 * Add audio stream to the muxer
+	 * @param sampleRate
+	 * @param channelLayout
+	 * @param codecId
+	 * @param streamIndex, is the stream index of source
+	 * @return
+	 */
 	public boolean addAudioStream(int sampleRate, int channelLayout, int codecId, int streamIndex) {
 		return false;
 	}
 	
-	public boolean addStream(AVCodecParameters codecParameters, AVRational timebase) {
+	/**
+	 * Add stream to the muxer
+	 * @param codecParameters
+	 * @param timebase
+	 * @param streamIndex, is the stream index of the source. Sometimes source and target stream index do not match
+	 * @return
+	 */
+	public boolean addStream(AVCodecParameters codecParameters, AVRational timebase, int streamIndex) {
 		return false;
 	}
 
 	public void writeAudioBuffer(ByteBuffer byteBuffer, int i, long timestamp) {
 		//empty implementation
+	}
+	
+	public List<Integer> getRegisteredStreamIndexList() {
+		return registeredStreamIndexList;
 	}
 
 }

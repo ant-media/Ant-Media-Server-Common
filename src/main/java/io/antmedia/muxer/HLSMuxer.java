@@ -43,12 +43,15 @@ import java.io.FilenameFilter;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.tika.utils.ExceptionUtils;
 import org.bytedeco.ffmpeg.avcodec.AVBSFContext;
 import org.bytedeco.ffmpeg.avcodec.AVBitStreamFilter;
 import org.bytedeco.ffmpeg.avcodec.AVCodec;
@@ -69,14 +72,11 @@ import org.slf4j.LoggerFactory;
 
 import io.vertx.core.Vertx;
 
-
 public class HLSMuxer extends Muxer  {
 
 
 	private AVBSFContext bsfContext;
 	private long lastDTS = -1; 
-
-	private List<Integer> registeredStreamIndexList = new ArrayList<>();
 
 	protected static Logger logger = LoggerFactory.getLogger(HLSMuxer.class);
 	private String  hlsListSize = "20";
@@ -99,11 +99,13 @@ public class HLSMuxer extends Muxer  {
 	private int videoIndex;
 	private String hlsFlags;
 	
+	private String hlsEncryptionKeyInfoFile = null;
+	
 	private Map<Integer, AVRational> codecTimeBaseMap = new HashMap<>();
 	private AVPacket videoPkt;
 
 
-	public HLSMuxer(Vertx vertx, String hlsListSize, String hlsTime, String hlsPlayListType, String hlsFlags) {
+	public HLSMuxer(Vertx vertx, String hlsListSize, String hlsTime, String hlsPlayListType, String hlsFlags, String hlsEncryptionKeyInfoFile) {
 		super(vertx);
 		extension = ".m3u8";
 		format = "hls";
@@ -126,6 +128,10 @@ public class HLSMuxer extends Muxer  {
 		else {
 			this.hlsFlags = "";
 		}
+		
+		if (hlsEncryptionKeyInfoFile != null && !hlsEncryptionKeyInfoFile.isEmpty()) {
+			this.hlsEncryptionKeyInfoFile = hlsEncryptionKeyInfoFile;
+		}		
 
 		avRationalTimeBase = new AVRational();
 		avRationalTimeBase.num(1);
@@ -143,7 +149,16 @@ public class HLSMuxer extends Muxer  {
 			options.put("hls_list_size", hlsListSize);
 			options.put("hls_time", hlsTime);
 			
-			
+			/*
+			if(hlsEncryptionEnabled) {
+				options.put("hls_enc", "1");
+			}
+			*/
+			if(hlsEncryptionKeyInfoFile != null) {
+				options.put("hls_key_info_file", hlsEncryptionKeyInfoFile);
+			}
+
+
 			logger.info("hls time: {}, hls list size: {}", hlsTime, hlsListSize);
 
 			String segmentFilename = file.getParentFile() + "/" + name +"_" + resolutionHeight +"p"+ "%04d.ts";
@@ -166,6 +181,16 @@ public class HLSMuxer extends Muxer  {
 			isInitialized = true;
 		}
 
+	}
+	
+	public static void writeToFile(String absolutePath, String content) {
+		try {
+			Files.write(new File(absolutePath).toPath(), content.getBytes(), StandardOpenOption.CREATE);
+		} catch (IOException e) {
+			if (logger != null) {
+				logger.error(e.toString());
+			}
+		}
 	}
 
 	private AVFormatContext getOutputFormatContext() {
@@ -280,7 +305,7 @@ public class HLSMuxer extends Muxer  {
 			if (ret < 0 && logger.isInfoEnabled()) {
 				byte[] data = new byte[64];
 				av_strerror(ret, data, data.length);
-				logger.info("cannot write frame(not video) to muxer. Error is {} ", new String(data, 0, data.length));
+				logger.info("cannot write frame(not video) to muxer. Error is {} stream: {}", new String(data, 0, data.length),  file.getName());
 			}
 		}
 		pkt.pts(pts);
@@ -473,7 +498,7 @@ public class HLSMuxer extends Muxer  {
 	
 	
 	@Override
-	public boolean addStream(AVCodecParameters codecParameters, AVRational timebase) 
+	public boolean addStream(AVCodecParameters codecParameters, AVRational timebase, int streamIndex) 
 	{
 		boolean result = false;
 		AVFormatContext outputContext = getOutputFormatContext();
@@ -534,13 +559,12 @@ public class HLSMuxer extends Muxer  {
 			
 			outStream.time_base(timebase);
 			codecTimeBaseMap.put(outStream.index(), timebase);
-			registeredStreamIndexList.add(outStream.index());
+			registeredStreamIndexList.add(streamIndex);
 			result = true;
 		}
 		
 		return result;
 	}
-	
 
 
 	/**
@@ -575,7 +599,8 @@ public class HLSMuxer extends Muxer  {
 			for (String key : keySet) {
 				av_dict_set(optionsDictionary, key, options.get(key), 0);
 			}
-		}
+		}		
+		
 		ret = avformat_write_header(context, optionsDictionary);		
 		if (ret < 0 && logger.isWarnEnabled()) {
 			byte[] data = new byte[1024];
