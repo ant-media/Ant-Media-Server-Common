@@ -1427,16 +1427,10 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	}
 
 	private Mp4Muxer createMp4Muxer() {
-		Mp4Muxer mp4Muxer = new Mp4Muxer(storageClient, vertx);
+		Mp4Muxer mp4Muxer = new Mp4Muxer(storageClient, vertx, appSettings.getS3StreamsFolderPath());
 		mp4Muxer.setAddDateTimeToSourceName(addDateTimeToMp4FileName);
 		mp4Muxer.setBitstreamFilter(mp4Filtername);
 		return mp4Muxer;
-	}
-
-	private WebMMuxer createWebMMuxer() {
-		WebMMuxer webMMuxer = new WebMMuxer(storageClient, vertx);
-		webMMuxer.setAddDateTimeToSourceName(addDateTimeToMp4FileName);
-		return webMMuxer;
 	}
 
 	private Muxer addMp4Muxer() {

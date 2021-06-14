@@ -270,6 +270,9 @@ public class AppSettings {
 
 	private static final String SETTINGS_DASH_HTTP_STREAMING = "settings.dash.httpStreaming";
 	
+	private static final String SETTINGS_S3_STREAMS_FOLDER_PATH = "settings.s3.streams.folder.path";
+	
+	private static final String SETTINGS_S3_PREVIEWS_FOLDER_PATH = "settings.s3.previews.folder.path";
 	private static final String SETTINGS_DASH_HTTP_ENDPOINT = "settings.dash.httpEndpoint";
 
 	public static final String SETTINGS_S3_RECORDING_ENABLED = "settings.s3RecordingEnabled";
@@ -284,7 +287,7 @@ public class AppSettings {
 	
 	public static final String SETTINGS_HLS_ENCRYPTION_KEY_INFO_FILE = "settings.hlsEncryptionKeyInfoFile";
 	
-	//aaaa
+
 
 	@JsonIgnore
 	@NotSaved
@@ -1231,6 +1234,22 @@ public class AppSettings {
 	private boolean dashHttpStreaming;
 	
 	/**
+	 * It's S3 streams MP4, WEBM  and HLS files storage name . 
+	 * It's streams by default.
+	 * 
+	 */
+	@Value( "${"+SETTINGS_S3_STREAMS_FOLDER_PATH+":streams}" )
+	private String  s3StreamsFolderPath;
+
+	/**
+	 * It's S3 stream PNG files storage name . 
+	 * It's previews by default.
+	 * 
+	 */
+	@Value( "${"+SETTINGS_S3_PREVIEWS_FOLDER_PATH+":previews}" )
+	private String  s3PreviewsFolderPath;
+	
+	/*
 	 * Use http endpoint  in CMAF/HLS. 
 	 * It's configurable to send any stream in HTTP Endpoint with this option
 	 */
@@ -1301,7 +1320,6 @@ public class AppSettings {
 	@Value( "${" + SETTINGS_HLS_ENCRYPTION_KEY_INFO_FILE +":#{null}}")
 	private String hlsEncryptionKeyInfoFile;
 	
-
 	public boolean isWriteStatsToDatastore() {
 		return writeStatsToDatastore;
 	}
@@ -2442,6 +2460,10 @@ public class AppSettings {
 	public void setDashHttpStreaming(boolean dashHttpStreaming) {
 		this.dashHttpStreaming = dashHttpStreaming;
 	}
+	
+	public String getS3StreamsFolderPath() {
+		return s3StreamsFolderPath;
+	}
 
 	public String getDashHttpEndpoint() {
 		return dashHttpEndpoint;
@@ -2504,6 +2526,16 @@ public class AppSettings {
 		this.hlsEncryptionKeyInfoFile = hlsEncryptionKeyInfoFile;
 	}
 
-	
+	public void setS3StreamsFolderPath(String s3StreamsFolderPath) {
+		this.s3StreamsFolderPath = s3StreamsFolderPath;
+	}
 
+	public String getS3PreviewsFolderPath() {
+		return s3PreviewsFolderPath;
+	}
+
+	public void setS3PreviewsFolderPath(String s3PreviewsFolderPath) {
+		this.s3PreviewsFolderPath = s3PreviewsFolderPath;
+	}
+	
 }

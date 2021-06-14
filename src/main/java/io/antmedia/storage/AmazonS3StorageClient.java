@@ -59,28 +59,17 @@ public class AmazonS3StorageClient extends StorageClient {
 	}
 
 
-	public void delete(String fileName, FileType type) {
+	public void delete(String key) {
 		if (isEnabled()) 
 		{
 			AmazonS3 s3 = getAmazonS3();
-			s3.deleteObject(getStorageName(), type.getValue() + "/" + fileName);
+			s3.deleteObject(getStorageName(), key);
 		}
 		else 
 		{
-			logger.debug("S3 is not enabled to delete the file: {}", fileName);
+			logger.debug("S3 is not enabled to delete the file: {}", key);
 		}
 
-	}
-
-	public boolean fileExist(String fileName, FileType type) {
-		if (isEnabled()) {
-			AmazonS3 s3 = getAmazonS3();
-			return s3.doesObjectExist(getStorageName(), type.getValue() + "/" + fileName); 
-		}
-		else {
-			logger.debug("S3 is not enabled to check the file existence: {}", fileName);
-		}
-		return false;
 	}
 
 	public boolean fileExist(String key) {
@@ -92,9 +81,9 @@ public class AmazonS3StorageClient extends StorageClient {
 		}
 		return false;
 	}
-
-	public void save(final File file, FileType type) {
-		save(type.getValue() + "/" + file.getName(), file);
+	
+	public void save(final File file, String type) {
+		save(type + "/" + file.getName(), file);
 	}
 
 	public void save(String key, File file)

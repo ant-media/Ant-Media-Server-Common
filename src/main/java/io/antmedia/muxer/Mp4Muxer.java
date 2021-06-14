@@ -116,8 +116,8 @@ public class Mp4Muxer extends RecordMuxer {
 			AV_CODEC_ID_NONE
 	};
 
-	public Mp4Muxer(StorageClient storageClient, Vertx vertx) {
-		super(storageClient, vertx);
+	public Mp4Muxer(StorageClient storageClient, Vertx vertx, String s3FolderPath) {
+		super(storageClient, vertx, s3FolderPath);
 		options.put("movflags", "faststart");
 		extension = ".mp4";
 		format = "mp4";
