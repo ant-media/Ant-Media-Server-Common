@@ -65,6 +65,7 @@ import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.muxer.parser.AACConfigParser;
 import io.antmedia.muxer.parser.AACConfigParser.AudioObjectTypes;
+import io.antmedia.settings.IServerSettings;
 import io.antmedia.muxer.parser.SpsParser;
 import io.antmedia.plugin.PacketFeeder;
 import io.antmedia.plugin.api.IPacketListener;
@@ -163,6 +164,8 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	private int firstReceivedFrameTimestamp = -1;
 	protected int totalIngestedVideoPacketCount = 0;
 	private long bufferTimeMs = 0;
+	
+	protected IServerSettings serverSettings;
 
 	/**
 	 * Packet times in ordered way to calculate streaming health
@@ -227,7 +230,8 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	private BytePointer videoExtraDataPointer;
 	private AtomicLong endpointStatusUpdaterTimer = new AtomicLong(-1l);
 	private ConcurrentHashMap<String, String> endpointStatusUpdateMap = new ConcurrentHashMap<>();
-
+	
+	
 	private PacketFeeder packetFeeder;
 
 	private static final int COUNT_TO_LOG_BUFFER = 500;
@@ -339,11 +343,13 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 		getDataStore();
 		enableSettings();
+		initServerSettings();
 		initStorageClient();
 		enableMp4Setting();
 		enableWebMSetting();
 		initVertx();
-
+		initServerSettings();		
+		
 		
 		if (mp4MuxingEnabled) {
 			addMp4Muxer();
@@ -351,7 +357,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		}
 
 		if (hlsMuxingEnabled) {
-			HLSMuxer hlsMuxer = new HLSMuxer(vertx, hlsListSize, hlsTime, hlsPlayListType, getAppSettings().getHlsFlags());
+			HLSMuxer hlsMuxer = new HLSMuxer(vertx, hlsListSize, hlsTime, hlsPlayListType, getAppSettings().getHlsFlags(), getAppSettings().getHlsEncryptionKeyInfoFile());
 			hlsMuxer.setDeleteFileOnExit(deleteHLSFilesOnExit);
 			addMuxer(hlsMuxer);
 			logger.info("adding HLS Muxer for {}", streamId);
@@ -379,7 +385,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 				dashMuxer = (Muxer) dashMuxerClass.getConstructors()[0].newInstance(vertx, dashFragmentDuration, dashSegDuration, targetLatency, deleteDASHFilesOnExit, !appSettings.getEncoderSettings().isEmpty(),
 							appSettings.getDashWindowSize(), appSettings.getDashExtraWindowSize(), appSettings.islLDashEnabled(), appSettings.islLHLSEnabled(),
-							appSettings.isHlsEnabledViaDash(), appSettings.isUseTimelineDashMuxing(), appSettings.isDashHttpStreaming(),appSettings.getDashHttpEndpoint());
+							appSettings.isHlsEnabledViaDash(), appSettings.isUseTimelineDashMuxing(), appSettings.isDashHttpStreaming(),appSettings.getDashHttpEndpoint(), serverSettings.getDefaultHttpPort());
 				
 				
 
@@ -403,6 +409,16 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		}
 		else {
 			logger.info("No vertx bean for stream {}", streamId);
+		}
+	}
+
+	protected void initServerSettings() {
+		if(scope.getContext().getApplicationContext().containsBean(IServerSettings.BEAN_NAME)) {
+			serverSettings = (IServerSettings)scope.getContext().getApplicationContext().getBean(IServerSettings.BEAN_NAME);
+			logger.info("serverSettings exist {}", serverSettings);
+		}
+		else {
+			logger.info("No serverSettings bean for stream {}", streamId);
 		}
 	}
 
@@ -1424,16 +1440,10 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	}
 
 	private Mp4Muxer createMp4Muxer() {
-		Mp4Muxer mp4Muxer = new Mp4Muxer(storageClient, vertx);
+		Mp4Muxer mp4Muxer = new Mp4Muxer(storageClient, vertx, appSettings.getS3StreamsFolderPath());
 		mp4Muxer.setAddDateTimeToSourceName(addDateTimeToMp4FileName);
 		mp4Muxer.setBitstreamFilter(mp4Filtername);
 		return mp4Muxer;
-	}
-
-	private WebMMuxer createWebMMuxer() {
-		WebMMuxer webMMuxer = new WebMMuxer(storageClient, vertx);
-		webMMuxer.setAddDateTimeToSourceName(addDateTimeToMp4FileName);
-		return webMMuxer;
 	}
 
 	private Muxer addMp4Muxer() {

@@ -65,6 +65,8 @@ public abstract class Muxer {
 	private static Logger logger = LoggerFactory.getLogger(Muxer.class);
 
 	protected AVFormatContext outputFormatContext;
+	
+	public static final String DATE_TIME_PATTERN = "yyyy-MM-dd_HH-mm-ss.SSS";
 
 	protected File file;
 
@@ -262,9 +264,9 @@ public abstract class Muxer {
 
 				LocalDateTime ldt =  LocalDateTime.now();
 
-				resourceName = name + "-" + ldt.format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss.SSS"));
+				resourceName = name + "-" + ldt.format(DateTimeFormatter.ofPattern(DATE_TIME_PATTERN));
 				if (logger.isInfoEnabled()) {
-					logger.info("Date time resource name: {} local date time: {}", resourceName, ldt.format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH:mm:ss.SSS")));
+					logger.info("Date time resource name: {} local date time: {}", resourceName, ldt.format(DateTimeFormatter.ofPattern(DATE_TIME_PATTERN)));
 				}
 			}
 
