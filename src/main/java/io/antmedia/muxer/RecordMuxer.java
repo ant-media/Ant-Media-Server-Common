@@ -44,7 +44,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
-import io.antmedia.AppSettings;
 import org.bytedeco.ffmpeg.avcodec.AVBSFContext;
 import org.bytedeco.ffmpeg.avcodec.AVCodec;
 import org.bytedeco.ffmpeg.avcodec.AVCodecContext;
@@ -64,8 +63,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 
+import io.antmedia.AppSettings;
 import io.antmedia.storage.StorageClient;
-import io.antmedia.storage.StorageClient.FileType;
 import io.vertx.core.Vertx;
 
 public abstract class RecordMuxer extends Muxer {
@@ -98,11 +97,14 @@ public abstract class RecordMuxer extends Muxer {
 	 * It means it's started after broadcasting is started and it can be stopped before brodcasting has finished
 	 */
 	protected boolean dynamic = false;
+	
+	private String s3FolderPath = "streams";
 
 
-	public RecordMuxer(StorageClient storageClient, Vertx vertx) {
+	public RecordMuxer(StorageClient storageClient, Vertx vertx, String s3FolderPath) {
 		super(vertx);
 		this.storageClient = storageClient;
+		this.s3FolderPath = s3FolderPath;
 	}
 
 	protected int[] SUPPORTED_CODECS;
@@ -463,7 +465,7 @@ public abstract class RecordMuxer extends Muxer {
 			// Check file exist in S3 and change file names. In this way, new file is created after the file name changed.
 
 			String fileName = getFile().getName();
-			if (storageClient.fileExist(FileType.TYPE_STREAM.getValue() + "/" + fileName)) {
+			if (storageClient.fileExist(s3FolderPath + "/" + fileName)) {
 
 				String tmpName =  fileName;
 
@@ -471,10 +473,10 @@ public abstract class RecordMuxer extends Muxer {
 				do {
 					i++;
 					fileName = tmpName.replace(".", "_"+ i +".");
-				} while (storageClient.fileExist(FileType.TYPE_STREAM.getValue() + "/" + fileName));
+				} while (storageClient.fileExist(s3FolderPath + "/" + fileName));
 			}
 
-			storageClient.save(FileType.TYPE_STREAM.getValue() + "/" + fileName, fileToUpload);
+			storageClient.save(s3FolderPath + "/" + fileName, fileToUpload);
 		});
 	}
 

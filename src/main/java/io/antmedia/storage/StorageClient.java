@@ -6,21 +6,6 @@ public abstract class StorageClient {
 	
 	
 	public static final String BEAN_NAME = "app.storageClient";
-	
-	public enum FileType {
-		TYPE_PREVIEW("previews"),
-		TYPE_STREAM("streams");
-		
-		private String value;
-
-		private FileType(String value) {
-			this.value = value;
-		}
-		
-		public String getValue() {
-			return value;
-		}
-	}
 
 	/**
 	 * Endpoint for the storage, it's optional and it's used in some platforms like Digital Ocean, Wasabi, OVH
@@ -61,17 +46,7 @@ public abstract class StorageClient {
 	 * @param fileName
 	 * @param type
 	 */
-	public abstract void delete(String fileName, String type);
-	
-	/**
-	 * Save file to storage and delete the local file
-	 * 
-	 * @param file
-	 * File to be saved to storage
-	 * @param type
-	 * type of the file
-	 */
-	public abstract void save(final File file, String type);
+	public abstract void delete(String key);
 	
 	/**
 	 * Save file to storage and delete the local file 
@@ -81,15 +56,6 @@ public abstract class StorageClient {
 	 */
 	public abstract void save(String key, File file);
 
-	/**
-	 * Checks file exists on storage
-	 * 
-	 * @param fileName
-	 * @param type
-	 * @return
-	 */
-	public abstract boolean fileExist(String fileName, FileType type);
-	
 	/**
 	 * Check if the key exists in the bucket
 	 * 
