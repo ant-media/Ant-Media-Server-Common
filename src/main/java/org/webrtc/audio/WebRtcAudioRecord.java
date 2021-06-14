@@ -315,7 +315,7 @@ public class WebRtcAudioRecord {
   private native void nativeCacheDirectBufferAddressForEncodedAudio(
 			long nativeAudioRecordJni, ByteBuffer byteBuffer);
 
-  private native void nativeEncodedDataIsReady(long nativeAudioRecordJni, int bytes);
+  private native void nativeEncodedDataIsReady(long nativeAudioRecordJni, String trackId, int bytes);
 
 
   // Sets all recorded samples to zero if |mute| is true, i.e., ensures that
@@ -496,12 +496,12 @@ public class WebRtcAudioRecord {
   /**
 	 * @param audio => 20ms of encoded audio data
 	 */
-	public void notifyEncodedData(ByteBuffer audio) {
+	public void notifyEncodedData(String trackId, ByteBuffer audio) {
 		if (audio.limit() <= encodedByteBuffer.capacity()) {
 			encodedByteBuffer.clear();
 			audio.rewind();
 			encodedByteBuffer.put(audio);
-			nativeEncodedDataIsReady(nativeAudioRecord, audio.limit());
+			nativeEncodedDataIsReady(nativeAudioRecord, trackId, audio.limit());
 		}
 		else {
 			 logger.warn("Discarding audio packet because audio packet size({}) is bigger than buffer capacity{} and limit {}", audio.limit(), encodedByteBuffer.capacity(), encodedByteBuffer.limit());
