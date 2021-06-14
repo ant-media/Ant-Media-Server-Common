@@ -65,6 +65,7 @@ import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.muxer.parser.AACConfigParser;
 import io.antmedia.muxer.parser.AACConfigParser.AudioObjectTypes;
+import io.antmedia.settings.IServerSettings;
 import io.antmedia.muxer.parser.SpsParser;
 import io.antmedia.storage.StorageClient;
 import io.vertx.core.Vertx;
@@ -87,7 +88,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 
 	private int videoStreamIndex;
-	private int audioStreamIndex;
+	protected int audioStreamIndex;
 
 	protected boolean previewOverwrite = false;
 
@@ -160,6 +161,8 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	private int firstReceivedFrameTimestamp = -1;
 	protected int totalIngestedVideoPacketCount = 0;
 	private long bufferTimeMs = 0;
+	
+	protected IServerSettings serverSettings;
 
 	/**
 	 * Packet times in ordered way to calculate streaming health
@@ -224,7 +227,8 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	private BytePointer videoExtraDataPointer;
 	private AtomicLong endpointStatusUpdaterTimer = new AtomicLong(-1l);
 	private ConcurrentHashMap<String, String> endpointStatusUpdateMap = new ConcurrentHashMap<>();
-
+	
+	
 	private static final int COUNT_TO_LOG_BUFFER = 500;
 
 	static {
@@ -333,18 +337,20 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 		getDataStore();
 		enableSettings();
+		initServerSettings();
 		initStorageClient();
 		enableMp4Setting();
 		enableWebMSetting();
 		initVertx();
-
+		initServerSettings();		
+		
 		if (mp4MuxingEnabled) {
 			addMp4Muxer();
 			logger.info("adding MP4 Muxer, add datetime to file name {}", addDateTimeToMp4FileName);
 		}
 
 		if (hlsMuxingEnabled) {
-			HLSMuxer hlsMuxer = new HLSMuxer(vertx, hlsListSize, hlsTime, hlsPlayListType, getAppSettings().getHlsFlags());
+			HLSMuxer hlsMuxer = new HLSMuxer(vertx, hlsListSize, hlsTime, hlsPlayListType, getAppSettings().getHlsFlags(), getAppSettings().getHlsEncryptionKeyInfoFile());
 			hlsMuxer.setDeleteFileOnExit(deleteHLSFilesOnExit);
 			addMuxer(hlsMuxer);
 			logger.info("adding HLS Muxer for {}", streamId);
@@ -372,7 +378,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 				dashMuxer = (Muxer) dashMuxerClass.getConstructors()[0].newInstance(vertx, dashFragmentDuration, dashSegDuration, targetLatency, deleteDASHFilesOnExit, !appSettings.getEncoderSettings().isEmpty(),
 							appSettings.getDashWindowSize(), appSettings.getDashExtraWindowSize(), appSettings.islLDashEnabled(), appSettings.islLHLSEnabled(),
-							appSettings.isHlsEnabledViaDash(), appSettings.isUseTimelineDashMuxing(), appSettings.isDashHttpStreaming(),appSettings.getDashHttpEndpoint());
+							appSettings.isHlsEnabledViaDash(), appSettings.isUseTimelineDashMuxing(), appSettings.isDashHttpStreaming(),appSettings.getDashHttpEndpoint(), serverSettings.getDefaultHttpPort());
 				
 
 
@@ -396,6 +402,16 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		}
 		else {
 			logger.info("No vertx bean for stream {}", streamId);
+		}
+	}
+
+	protected void initServerSettings() {
+		if(scope.getContext().getApplicationContext().containsBean(IServerSettings.BEAN_NAME)) {
+			serverSettings = (IServerSettings)scope.getContext().getApplicationContext().getBean(IServerSettings.BEAN_NAME);
+			logger.info("serverSettings exist {}", serverSettings);
+		}
+		else {
+			logger.info("No serverSettings bean for stream {}", streamId);
 		}
 	}
 
@@ -556,6 +572,8 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		}
 
 		prepareMuxerIO();
+		getStreamHandler().startPublish(streamId,broadcastStream.getAbsoluteStartTimeMs(), "RTMP");
+		
 
 		return true;
 	}
@@ -739,6 +757,10 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		if (packet.getDataType() == Constants.TYPE_VIDEO_DATA)
 		{
 
+			if(!enableVideo) {
+				logger.warn("Video data was disabled beginning of the stream, so discarding video packets.");
+				return;
+			}
 
 			measureIngestTime(dts, ((CachedEvent)packet).getReceivedTime());
 			if (!firstVideoPacketSkipped) {
@@ -752,7 +774,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			//position 2,3,4 composition time offset
 			int compositionTimeOffset = (packet.getData().position(2).get() << 16)  | packet.getData().position(3).getShort();
 			long pts = dts + compositionTimeOffset;
-
+			
 			//we get 5 less bytes because first 5 bytes is related to the video tag. It's not part of the generic packet
 			ByteBuffer byteBuffer = ByteBuffer.allocateDirect(bodySize-5);
 			byteBuffer.put(packet.getData().buf().position(5));
@@ -760,7 +782,8 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 			synchronized (muxerList) 
 			{
-				for (Muxer muxer : muxerList) {
+				for (Muxer muxer : muxerList) 
+				{
 					muxer.writeVideoBuffer(byteBuffer, dts, 0, videoStreamIndex, (frameType & 0xF0) == IVideoStreamCodec.FLV_FRAME_KEY, 0, pts);
 				}
 			}
@@ -769,10 +792,14 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		}
 		else if (packet.getDataType() == Constants.TYPE_AUDIO_DATA) {
 
+			if(!enableAudio) {
+				logger.warn("Audio data was disabled beginning of the stream, so discarding audio packets.");
+				return;
+			}
+			
 			if (!firstAudioPacketSkipped) {
 				firstAudioPacketSkipped = true;
 				return;
-
 			}
 			int bodySize = packet.getData().limit();
 			//we get 2 less bytes because first 2 bytes is related to the audio tag. It's not part of the generic packet
@@ -782,7 +809,8 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 			synchronized (muxerList) 
 			{
-				for (Muxer muxer : muxerList) {
+				for (Muxer muxer : muxerList) 
+				{
 					muxer.writeAudioBuffer(byteBuffer, audioStreamIndex, dts);
 				}
 			}
@@ -1129,10 +1157,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 						logger.error(ExceptionUtils.getStackTrace(e));
 					}
 					p.complete();
-				}, false, r -> {
-					//no care
-				})
-						);
+				}, false, null));
 
 
 
@@ -1150,9 +1175,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 							logger.error(ExceptionUtils.getStackTrace(e));
 						}
 						p.complete();
-					}, false, r -> {
-						//no care
-					})
+					}, false, null)
 							);
 
 				}
@@ -1419,16 +1442,10 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	}
 
 	private Mp4Muxer createMp4Muxer() {
-		Mp4Muxer mp4Muxer = new Mp4Muxer(storageClient, vertx);
+		Mp4Muxer mp4Muxer = new Mp4Muxer(storageClient, vertx, appSettings.getS3StreamsFolderPath());
 		mp4Muxer.setAddDateTimeToSourceName(addDateTimeToMp4FileName);
 		mp4Muxer.setBitstreamFilter(mp4Filtername);
 		return mp4Muxer;
-	}
-
-	private WebMMuxer createWebMMuxer() {
-		WebMMuxer webMMuxer = new WebMMuxer(storageClient, vertx);
-		webMMuxer.setAddDateTimeToSourceName(addDateTimeToMp4FileName);
-		return webMMuxer;
 	}
 
 	private Muxer addMp4Muxer() {
@@ -1490,7 +1507,6 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 					break;
 				}
 			}
-
 		}
 		else {
 			AVCodecParameters videoParameters = getVideoCodecParameters();

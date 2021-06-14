@@ -270,7 +270,24 @@ public class AppSettings {
 
 	private static final String SETTINGS_DASH_HTTP_STREAMING = "settings.dash.httpStreaming";
 	
+	private static final String SETTINGS_S3_STREAMS_FOLDER_PATH = "settings.s3.streams.folder.path";
+	
+	private static final String SETTINGS_S3_PREVIEWS_FOLDER_PATH = "settings.s3.previews.folder.path";
 	private static final String SETTINGS_DASH_HTTP_ENDPOINT = "settings.dash.httpEndpoint";
+
+	public static final String SETTINGS_S3_RECORDING_ENABLED = "settings.s3RecordingEnabled";
+
+	public static final String SETTINGS_S3_ACCESS_KEY = "settings.s3AccessKey";
+	public static final String SETTINGS_S3_SECRET_KEY = "settings.s3SecretKey";
+	public static final String SETTINGS_S3_REGION_NAME = "settings.s3RegionName";
+	public static final String SETTINGS_S3_BUCKET_NAME = "settings.s3BucketName";
+	public static final String SETTINGS_S3_ENDPOINT = "settings.s3Endpoint";
+	public static final String SETTINGS_ENABLE_TIME_TOKEN_PLAY = "settings.enableTimeTokenForPlay";
+	public static final String SETTINGS_ENABLE_TIME_TOKEN_PUBLISH = "settings.enableTimeTokenForPublish";
+	
+	public static final String SETTINGS_HLS_ENCRYPTION_KEY_INFO_FILE = "settings.hlsEncryptionKeyInfoFile";
+	
+
 
 	@JsonIgnore
 	@NotSaved
@@ -502,7 +519,17 @@ public class AppSettings {
 	 * the settings for accepting only time based token subscribers as connections to the streams 
 	 */
 	@Value( "${"+SETTINGS_TIME_TOKEN_SUBSCRIBER_ONLY+":false}" )
-	private boolean timeTokenSubscriberOnly;	
+	private boolean timeTokenSubscriberOnly;
+	/**
+	 * the settings for accepting only time based token subscribers as connections to the streams
+	 */
+	@Value( "${"+SETTINGS_ENABLE_TIME_TOKEN_PLAY+":false}" )
+	private boolean enableTimeTokenForPlay;
+	/**
+	 * the settings for accepting only time based token subscribers as connections to the streams
+	 */
+	@Value( "${"+SETTINGS_ENABLE_TIME_TOKEN_PUBLISH+":false}" )
+	private boolean enableTimeTokenForPublish;
 	
 	/**
 	 * period for the generated time token 
@@ -980,7 +1007,7 @@ public class AppSettings {
 	/**
 	 * Max analyze duration in for determining video and audio existence in RTMP streams
 	 */
-	@Value("${" + SETTINGS_RTMP_MAX_ANALYZE_DURATION_MS+ ":1000}")
+	@Value("${" + SETTINGS_RTMP_MAX_ANALYZE_DURATION_MS+ ":2500}")
 	private int maxAnalyzeDurationMS;
 	
 	/**
@@ -1207,12 +1234,92 @@ public class AppSettings {
 	private boolean dashHttpStreaming;
 	
 	/**
+	 * It's S3 streams MP4, WEBM  and HLS files storage name . 
+	 * It's streams by default.
+	 * 
+	 */
+	@Value( "${"+SETTINGS_S3_STREAMS_FOLDER_PATH+":streams}" )
+	private String  s3StreamsFolderPath;
+
+	/**
+	 * It's S3 stream PNG files storage name . 
+	 * It's previews by default.
+	 * 
+	 */
+	@Value( "${"+SETTINGS_S3_PREVIEWS_FOLDER_PATH+":previews}" )
+	private String  s3PreviewsFolderPath;
+	
+	/*
 	 * Use http endpoint  in CMAF/HLS. 
 	 * It's configurable to send any stream in HTTP Endpoint with this option
 	 */
 	@Value( "${"+SETTINGS_DASH_HTTP_ENDPOINT+":#{null}}" )
 	private String dashHttpEndpoint;
 
+	/**
+	 * Application JWT Control Enabled
+	 */
+	@Value( "${"+SETTINGS_S3_RECORDING_ENABLED+":false}" )
+	private boolean s3RecordingEnabled;
+
+	/**
+	 * S3 Access key
+	 */
+	@Value( "${"+SETTINGS_S3_ACCESS_KEY+":#{null}}" )
+	private String s3AccessKey;
+
+	/**
+	 * S3 Secret Key
+	 */
+	@Value( "${"+SETTINGS_S3_SECRET_KEY+":#{null}}" )
+	private String s3SecretKey;
+
+	/**
+	 * S3 Bucket Name
+	 */
+	@Value( "${"+SETTINGS_S3_BUCKET_NAME+":#{null}}" )
+	private String s3BucketName;
+
+	/**
+	 * S3 Region Name
+	 */
+	@Value( "${"+SETTINGS_S3_REGION_NAME+":#{null}}" )
+	private String s3RegionName;
+
+	/**
+	 * S3 Endpoint
+	 */
+	@Value( "${"+SETTINGS_S3_ENDPOINT+":#{null}}" )
+	private String s3Endpoint;
+	
+	/**
+	 *  HLS Encryption key info file full path.
+	 *  Format of the file
+	 *  ```
+	 *  key URI
+	 *  key file path
+	 *  IV (optional)
+	 *  ``
+	 *  
+	 *  The first line of key_info_file specifies the key URI written to the playlist. 
+	 *  The key URL is used to access the encryption key during playback. 
+	 *  The second line specifies the path to the key file used to obtain the key during the encryption process. 
+	 *  The key file is read as a single packed array of 16 octets in binary format. 
+	 *  The optional third line specifies the initialization vector (IV) as a hexadecimal string to be used 
+	 *  instead of the segment sequence number (default) for encryption. 
+	 *  
+	 *  Changes to key_info_file will result in segment encryption with the new key/IV and an entry in the playlist for the new key URI/IV if hls_flags periodic_rekey is enabled.
+	 *
+	 *  Key info file example:
+	 *  ```
+	 *  http://server/file.key
+	 *  /path/to/file.key
+	 *  0123456789ABCDEF0123456789ABCDEF
+	 *  ```
+	 */
+	@Value( "${" + SETTINGS_HLS_ENCRYPTION_KEY_INFO_FILE +":#{null}}")
+	private String hlsEncryptionKeyInfoFile;
+	
 	public boolean isWriteStatsToDatastore() {
 		return writeStatsToDatastore;
 	}
@@ -1532,7 +1639,22 @@ public class AppSettings {
 	
 	public void setTimeTokenSubscriberOnly(boolean timeTokenSubscriberOnly) {
 		this.timeTokenSubscriberOnly = timeTokenSubscriberOnly;
-	}	
+	}
+
+	public boolean isEnableTimeTokenForPlay() {
+		return enableTimeTokenForPlay;
+	}
+
+	public void setEnableTimeTokenForPlay(boolean enableTimeTokenForPlay) {
+		this.enableTimeTokenForPlay = enableTimeTokenForPlay;
+	}
+	public boolean isEnableTimeTokenForPublish() {
+		return enableTimeTokenForPublish;
+	}
+
+	public void setEnableTimeTokenForPublish(boolean enableTimeTokenForPublish) {
+		this.enableTimeTokenForPublish = enableTimeTokenForPublish;
+	}
 	
 	public String getMuxerFinishScript() {
 		return muxerFinishScript;
@@ -1597,6 +1719,8 @@ public class AppSettings {
 		publishTokenControlEnabled = false;
 		playTokenControlEnabled = false;
 		timeTokenSubscriberOnly = false;
+		enableTimeTokenForPlay = false;
+		enableTimeTokenForPublish = false;
 		hlsPlayListType = null;
 		previewOverwrite = false;
 		objectDetectionEnabled = false;
@@ -2336,12 +2460,82 @@ public class AppSettings {
 	public void setDashHttpStreaming(boolean dashHttpStreaming) {
 		this.dashHttpStreaming = dashHttpStreaming;
 	}
+	
+	public String getS3StreamsFolderPath() {
+		return s3StreamsFolderPath;
+	}
 
 	public String getDashHttpEndpoint() {
 		return dashHttpEndpoint;
 	}
 
+
+	public boolean isS3RecordingEnabled() { return s3RecordingEnabled; }
+
+	public void setS3RecordingEnabled(boolean s3RecordingEnabled) {
+		this.s3RecordingEnabled = s3RecordingEnabled;
+	}
+
+	public String getS3SecretKey() {
+		return s3SecretKey;
+	}
+
+	public void setS3SecretKey(String s3SecretKey) { this.s3SecretKey = s3SecretKey; }
+
+	public String getS3AccessKey() {
+		return s3AccessKey;
+	}
+
+	public void setS3AccessKey(String s3AccessKey) {
+		this.s3AccessKey = s3AccessKey;
+	}
+
+	public String getS3RegionName() {
+		return s3RegionName;
+	}
+
+	public void setS3RegionName(String s3RegionName) {
+		this.s3RegionName = s3RegionName;
+	}
+
+	public String getS3BucketName() {
+		return s3BucketName;
+	}
+
+	public void setS3BucketName(String s3BucketName) {
+		this.s3BucketName = s3BucketName;
+	}
+
+	public String getS3Endpoint() {
+		return s3Endpoint;
+	}
+
+	public void setS3Endpoint(String s3Endpoint) {
+		this.s3Endpoint = s3Endpoint;
+	}
+
 	public void setDashHttpEndpoint(String dashHttpEndpoint) {
 		this.dashHttpEndpoint = dashHttpEndpoint;
 	}
+
+	public String getHlsEncryptionKeyInfoFile() {
+		return hlsEncryptionKeyInfoFile;
+	}
+
+	public void setHlsEncryptionKeyInfoFile(String hlsEncryptionKeyInfoFile) {
+		this.hlsEncryptionKeyInfoFile = hlsEncryptionKeyInfoFile;
+	}
+
+	public void setS3StreamsFolderPath(String s3StreamsFolderPath) {
+		this.s3StreamsFolderPath = s3StreamsFolderPath;
+	}
+
+	public String getS3PreviewsFolderPath() {
+		return s3PreviewsFolderPath;
+	}
+
+	public void setS3PreviewsFolderPath(String s3PreviewsFolderPath) {
+		this.s3PreviewsFolderPath = s3PreviewsFolderPath;
+	}
+	
 }

@@ -24,8 +24,8 @@ public class WebMMuxer extends RecordMuxer {
 			AV_CODEC_ID_OPUS
 	};
 
-	public WebMMuxer(StorageClient storageClient, Vertx vertx) {
-		super(storageClient, vertx);
+	public WebMMuxer(StorageClient storageClient, Vertx vertx, String s3FolderPath) {
+		super(storageClient, vertx, s3FolderPath);
 		extension = ".webm";
 		format = "webm";
 		SUPPORTED_CODECS = WEBM_SUPPORTED_CODECS;

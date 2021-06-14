@@ -1,7 +1,6 @@
 package io.antmedia.muxer;
 
 
-import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_OPUS;
 import static org.bytedeco.ffmpeg.global.avcodec.AV_PKT_FLAG_KEY;
 import static org.bytedeco.ffmpeg.global.avcodec.av_bsf_free;
 import static org.bytedeco.ffmpeg.global.avcodec.av_bsf_receive_packet;
@@ -24,7 +23,8 @@ import static org.bytedeco.ffmpeg.global.avformat.avformat_new_stream;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_open_input;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_write_header;
 import static org.bytedeco.ffmpeg.global.avformat.avio_closep;
-import static org.bytedeco.ffmpeg.global.avutil.*;
+import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_AUDIO;
+import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_DATA;
 import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_VIDEO;
 import static org.bytedeco.ffmpeg.global.avutil.AV_NOPTS_VALUE;
 import static org.bytedeco.ffmpeg.global.avutil.AV_PIX_FMT_YUV420P;
@@ -40,9 +40,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -65,8 +63,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 
+import io.antmedia.AppSettings;
 import io.antmedia.storage.StorageClient;
-import io.antmedia.storage.StorageClient.FileType;
 import io.vertx.core.Vertx;
 
 public abstract class RecordMuxer extends Muxer {
@@ -99,19 +97,19 @@ public abstract class RecordMuxer extends Muxer {
 	 * It means it's started after broadcasting is started and it can be stopped before brodcasting has finished
 	 */
 	protected boolean dynamic = false;
+	
+	private String s3FolderPath = "streams";
 
 
-	public RecordMuxer(StorageClient storageClient, Vertx vertx) {
+	public RecordMuxer(StorageClient storageClient, Vertx vertx, String s3FolderPath) {
 		super(vertx);
 		this.storageClient = storageClient;
+		this.s3FolderPath = s3FolderPath;
 	}
 
 	protected int[] SUPPORTED_CODECS;
-	private long firstAudioPts = -1;
-	private long firstVideoPts = -1;
 	private long firstAudioDts = -1;
 	private long firstVideoDts = -1;
-
 
 	public boolean isCodecSupported(int codecId) {
 		for (int i=0; i< SUPPORTED_CODECS.length; i++) {
@@ -186,6 +184,9 @@ public abstract class RecordMuxer extends Muxer {
 			////////////////////////
 			//TODO: This is a workaround solution. Adding sampleRate as timebase may not be correct. This method is only called by OpusForwarder
 			/////////////////////////
+			
+			//update about the workaround solution: We need to set the samplerate as timebase because 
+			// audio timestamp is coming with the sample rate scale from webrtc side
 			timeBase.num(1).den(sampleRate);
 			codecTimeBaseMap.put(streamIndex, timeBase);
 			result = true;
@@ -443,14 +444,18 @@ public abstract class RecordMuxer extends Muxer {
 					((IAntMediaStreamHandler)bean).muxingFinished(streamId, f, getDurationInMs(f,streamId), resolution);
 				}
 
-				if (storageClient != null) {
+				AppSettings appSettings = (AppSettings) appCtx.getBean(AppSettings.BEAN_NAME);
+
+
+				if (appSettings.isS3RecordingEnabled()) {
 					logger.info("Storage client is available saving {} to storage", f.getName());
 					saveToStorage(f);
 				}
 			} catch (Exception e) {
 				logger.error(e.getMessage());
 			}
-		}, r->{});
+			l.complete();
+		}, null);
 
 	}
 
@@ -459,7 +464,7 @@ public abstract class RecordMuxer extends Muxer {
 			// Check file exist in S3 and change file names. In this way, new file is created after the file name changed.
 
 			String fileName = getFile().getName();
-			if (storageClient.fileExist(FileType.TYPE_STREAM.getValue() + "/" + fileName)) {
+			if (storageClient.fileExist(s3FolderPath + "/" + fileName)) {
 
 				String tmpName =  fileName;
 
@@ -467,16 +472,15 @@ public abstract class RecordMuxer extends Muxer {
 				do {
 					i++;
 					fileName = tmpName.replace(".", "_"+ i +".");
-				} while (storageClient.fileExist(FileType.TYPE_STREAM.getValue() + "/" + fileName));
+				} while (storageClient.fileExist(s3FolderPath + "/" + fileName));
 			}
 
-			storageClient.save(FileType.TYPE_STREAM.getValue() + "/" + fileName, fileToUpload);
+			storageClient.save(s3FolderPath + "/" + fileName, fileToUpload);
 		});
 	}
 
 
 	protected void finalizeRecordFile(final File file) throws IOException {
-		System.out.println("finalize record file");
 		Files.move(fileTmp.toPath(),file.toPath());
 		logger.info("{} is ready", file.getName());
 	}
@@ -656,11 +660,10 @@ public abstract class RecordMuxer extends Muxer {
 
 		if (codecType == AVMEDIA_TYPE_AUDIO)
 		{
-			if(firstAudioPts == -1 || firstAudioDts == -1) {
-				firstAudioPts = pkt.pts();
+			if(firstAudioDts == -1) {
 				firstAudioDts = pkt.dts();
 			}
-			pkt.pts(av_rescale_q_rnd(pkt.pts() - firstAudioPts, inputTimebase, outputTimebase, AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
+			pkt.pts(av_rescale_q_rnd(pkt.pts() - firstAudioDts, inputTimebase, outputTimebase, AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
 			pkt.dts(av_rescale_q_rnd(pkt.dts() - firstAudioDts , inputTimebase, outputTimebase, AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
 
 
@@ -675,15 +678,13 @@ public abstract class RecordMuxer extends Muxer {
 		}
 		else if (codecType == AVMEDIA_TYPE_VIDEO)
 		{
-			if(firstVideoPts == -1 || firstVideoDts == -1) {
-				firstVideoPts = pkt.pts();
+			if(firstVideoDts == -1) {
 				firstVideoDts = pkt.dts();
 			}
 			// we don't set startTimeInVideoTimebase here because we only start with key frame and we drop all frames
 			// until the first key frame
-			pkt.pts(av_rescale_q_rnd(pkt.pts() - firstVideoPts , inputTimebase, outputTimebase, AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
+			pkt.pts(av_rescale_q_rnd(pkt.pts() - firstVideoDts , inputTimebase, outputTimebase, AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
 			pkt.dts(av_rescale_q_rnd(pkt.dts() - firstVideoDts, inputTimebase, outputTimebase, AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
-
 
 			int ret = av_packet_ref(tmpPacket , pkt);
 			if (ret < 0) {
@@ -742,11 +743,12 @@ public abstract class RecordMuxer extends Muxer {
 			}
 		}
 		else {
+			
 			ret = av_write_frame(context, pkt);
 			if (ret < 0 && logger.isWarnEnabled()) {
 				byte[] data = new byte[64];
 				av_strerror(ret, data, data.length);
-				logger.warn("cannot write video frame to muxer({}) not audio. Error is {} ", file.getName(), new String(data, 0, data.length));
+				logger.warn("cannot write video frame to muxer({}). Pts: {} dts:{}  Error is {} ", file.getName(), pkt.pts(), pkt.dts(), new String(data, 0, data.length));
 			}
 		}
 	}
