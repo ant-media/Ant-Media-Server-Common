@@ -610,6 +610,9 @@ public abstract class DataStore {
 		if (newBroadcast.getEndPointList() != null) {
 			broadcast.setEndPointList(newBroadcast.getEndPointList());
 		}
+		if (newBroadcast.getSubFolder() != null) {
+			broadcast.setSubFolder(newBroadcast.getSubFolder());
+		}
 		
 		broadcast.setCurrentPlayIndex(newBroadcast.getCurrentPlayIndex());
 		broadcast.setReceivedBytes(newBroadcast.getReceivedBytes());
