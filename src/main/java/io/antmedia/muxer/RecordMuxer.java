@@ -84,6 +84,8 @@ public abstract class RecordMuxer extends Muxer {
 	protected AVPacket videoPkt;
 	protected int rotation;
 
+	private String subFolder = null;
+
 	/**
 	 * By default first video key frame should be checked
 	 * and below flag should be set to true
@@ -97,8 +99,9 @@ public abstract class RecordMuxer extends Muxer {
 	 * It means it's started after broadcasting is started and it can be stopped before brodcasting has finished
 	 */
 	protected boolean dynamic = false;
-	
+
 	private String s3FolderPath = "streams";
+
 
 
 	public RecordMuxer(StorageClient storageClient, Vertx vertx, String s3FolderPath) {
@@ -184,7 +187,7 @@ public abstract class RecordMuxer extends Muxer {
 			////////////////////////
 			//TODO: This is a workaround solution. Adding sampleRate as timebase may not be correct. This method is only called by OpusForwarder
 			/////////////////////////
-			
+
 			//update about the workaround solution: We need to set the samplerate as timebase because 
 			// audio timestamp is coming with the sample rate scale from webrtc side
 			timeBase.num(1).den(sampleRate);
@@ -225,7 +228,7 @@ public abstract class RecordMuxer extends Muxer {
 			//if it's data, do not add and return true
 			result = true;
 		}
-		
+
 		return result;
 	}
 
@@ -354,16 +357,16 @@ public abstract class RecordMuxer extends Muxer {
 		}
 
 		/*
-		* Rotation field is used add metadata to the mp4.
-		* this method is called in directly creating mp4 from coming encoded WebRTC H264 stream
-		*/
+		 * Rotation field is used add metadata to the mp4.
+		 * this method is called in directly creating mp4 from coming encoded WebRTC H264 stream
+		 */
 		this.rotation = frameRotation;
 		videoPkt.stream_index(streamIndex);
 		videoPkt.pts(pts);
 		videoPkt.dts(dts);
-        if(isKeyFrame) {
-            videoPkt.flags(videoPkt.flags() | AV_PKT_FLAG_KEY);
-        }
+		if(isKeyFrame) {
+			videoPkt.flags(videoPkt.flags() | AV_PKT_FLAG_KEY);
+		}
 
 		encodedVideoFrame.rewind();
 		videoPkt.data(new BytePointer(encodedVideoFrame));
@@ -449,7 +452,7 @@ public abstract class RecordMuxer extends Muxer {
 
 				if (appSettings.isS3RecordingEnabled()) {
 					logger.info("Storage client is available saving {} to storage", f.getName());
-					saveToStorage(f);
+					saveToStorage(s3FolderPath + File.pathSeparator + subFolder + File.pathSeparator, f, getFile().getName(), storageClient);
 				}
 			} catch (Exception e) {
 				logger.error(e.getMessage());
@@ -459,24 +462,24 @@ public abstract class RecordMuxer extends Muxer {
 
 	}
 
-	public void saveToStorage(File fileToUpload) {
-		vertx.setTimer(1000, l2 -> {
-			// Check file exist in S3 and change file names. In this way, new file is created after the file name changed.
+	public static void saveToStorage(String prefix, File fileToUpload, String fileName, StorageClient storageClient) {
 
-			String fileName = getFile().getName();
-			if (storageClient.fileExist(s3FolderPath + "/" + fileName)) {
+		// Check file exist in S3 and change file names. In this way, new file is created after the file name changed.
 
-				String tmpName =  fileName;
 
-				int i = 0;
-				do {
-					i++;
-					fileName = tmpName.replace(".", "_"+ i +".");
-				} while (storageClient.fileExist(s3FolderPath + "/" + fileName));
-			}
+		if (storageClient.fileExist(prefix + fileName)) {
 
-			storageClient.save(s3FolderPath + "/" + fileName, fileToUpload);
-		});
+			String tmpName =  fileName;
+
+			int i = 0;
+			do {
+				i++;
+				fileName = tmpName.replace(".", "_"+ i +".");
+
+			} while (storageClient.fileExist(prefix + fileName));
+		}
+
+		storageClient.save(prefix + fileName, fileToUpload);
 	}
 
 
@@ -743,7 +746,7 @@ public abstract class RecordMuxer extends Muxer {
 			}
 		}
 		else {
-			
+
 			ret = av_write_frame(context, pkt);
 			if (ret < 0 && logger.isWarnEnabled()) {
 				byte[] data = new byte[64];

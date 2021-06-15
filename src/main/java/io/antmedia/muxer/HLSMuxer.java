@@ -70,6 +70,7 @@ import org.red5.server.api.scope.IScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.antmedia.storage.StorageClient;
 import io.vertx.core.Vertx;
 
 public class HLSMuxer extends Muxer  {
@@ -98,15 +99,20 @@ public class HLSMuxer extends Muxer  {
 	private int audioIndex;
 	private int videoIndex;
 	private String hlsFlags;
-	
+	private String streamId;
+
 	private String hlsEncryptionKeyInfoFile = null;
-	
+
 	private Map<Integer, AVRational> codecTimeBaseMap = new HashMap<>();
 	private AVPacket videoPkt;
+	protected StorageClient storageClient = null;
+	private String subFolder = null;
+	private String s3StreamsFolderPath = "streams";
 
 
-	public HLSMuxer(Vertx vertx, String hlsListSize, String hlsTime, String hlsPlayListType, String hlsFlags, String hlsEncryptionKeyInfoFile) {
+	public HLSMuxer(Vertx vertx, StorageClient storageClient, String hlsListSize, String hlsTime, String hlsPlayListType, String hlsFlags, String hlsEncryptionKeyInfoFile, String s3StreamsFolderPath) {
 		super(vertx);
+		this.storageClient = storageClient;
 		extension = ".m3u8";
 		format = "hls";
 
@@ -128,7 +134,7 @@ public class HLSMuxer extends Muxer  {
 		else {
 			this.hlsFlags = "";
 		}
-		
+
 		if (hlsEncryptionKeyInfoFile != null && !hlsEncryptionKeyInfoFile.isEmpty()) {
 			this.hlsEncryptionKeyInfoFile = hlsEncryptionKeyInfoFile;
 		}		
@@ -136,6 +142,8 @@ public class HLSMuxer extends Muxer  {
 		avRationalTimeBase = new AVRational();
 		avRationalTimeBase.num(1);
 		avRationalTimeBase.den(1);
+
+		this.s3StreamsFolderPath  = s3StreamsFolderPath;
 	}
 
 	/**
@@ -144,8 +152,10 @@ public class HLSMuxer extends Muxer  {
 	@Override
 	public void init(IScope scope, String name, int resolutionHeight, String subFolder) {
 		if (!isInitialized) {
+
 			super.init(scope, name, resolutionHeight, subFolder);
 
+			streamId = name;
 			options.put("hls_list_size", hlsListSize);
 			options.put("hls_time", hlsTime);
 
@@ -177,7 +187,7 @@ public class HLSMuxer extends Muxer  {
 		}
 
 	}
-	
+
 	public static void writeToFile(String absolutePath, String content) {
 		try {
 			Files.write(new File(absolutePath).toPath(), content.getBytes(), StandardOpenOption.CREATE);
@@ -356,49 +366,56 @@ public class HLSMuxer extends Muxer  {
 		outputFormatContext = null;
 
 		logger.info("Delete File onexit:{}", deleteFileOnExit);
-		if (vertx != null && deleteFileOnExit ) {
 
-			logger.info("Scheduling the task to delete. HLS time: {}, hlsListSize:{}", hlsTime, hlsListSize);
-			vertx.setTimer(Integer.parseInt(hlsTime) * Integer.parseInt(hlsListSize) * 1000, l -> {
-				logger.info("Deleting HLS files on exit");
 
-				final String filenameWithoutExtension = file.getName().substring(0, file.getName().lastIndexOf(extension));
+		logger.info("Scheduling the task to upload and/or delete. HLS time: {}, hlsListSize:{}", hlsTime, hlsListSize);
+		vertx.setTimer(Integer.parseInt(hlsTime) * Integer.parseInt(hlsListSize) * 1000, l -> {
+			logger.info("Deleting HLS files on exit");
 
-				File[] files = file.getParentFile().listFiles(new FilenameFilter() {
-					@Override
-					public boolean accept(File dir, String name) {
-						return name.contains(filenameWithoutExtension) && name.endsWith(".ts");
-					}
-				});
+			final String filenameWithoutExtension = file.getName().substring(0, file.getName().lastIndexOf(extension));
 
-				if (files != null)
-				{
-
-					for (int i = 0; i < files.length; i++) {
-						try {
-							if (!files[i].exists()) {
-								continue;
-							}
-							Files.delete(files[i].toPath());
-						} catch (IOException e) {
-							logger.error(e.getMessage());
-						}
-					}
+			File[] files = file.getParentFile().listFiles(new FilenameFilter() {
+				@Override
+				public boolean accept(File dir, String name) {
+					return name.contains(filenameWithoutExtension) && name.endsWith(".ts");
 				}
-				if (file.exists()) {
+			});
+
+			if (files != null)
+			{
+
+				for (int i = 0; i < files.length; i++) {
 					try {
-						Files.delete(file.toPath());
+						if (!files[i].exists()) {
+							continue;
+						}
+
+						storageClient.save(s3StreamsFolderPath + File.pathSeparator + subFolder + files[i].getName(), files[i]);
+
+						if (deleteFileOnExit) {
+							Files.delete(files[i].toPath());
+						}
 					} catch (IOException e) {
 						logger.error(e.getMessage());
 					}
 				}
-			});
-		}
+			}
+			if (file.exists()) {
+				try {
+					RecordMuxer.saveToStorage(s3StreamsFolderPath + File.pathSeparator + subFolder, file,  getFile().getName(), storageClient);
 
-		isRecording = false;
+					if (deleteFileOnExit) {
+						Files.delete(file.toPath());
+					}
+				} catch (IOException e) {
+					logger.error(e.getMessage());
+				}
+			}
+		});
+
+		isRecording = false;	
 	}
-
-
+	
 	/**
 	 * {@inheritDoc}
 	 */
@@ -597,7 +614,7 @@ public class HLSMuxer extends Muxer  {
 			}
 
 		}		
-		
+
 		ret = avformat_write_header(context, optionsDictionary);		
 		if (ret < 0 && logger.isWarnEnabled()) {
 			byte[] data = new byte[1024];
@@ -674,7 +691,7 @@ public class HLSMuxer extends Muxer  {
 
 	@Override
 	public void writeVideoBuffer(ByteBuffer encodedVideoFrame, long dts, int frameRotation, int streamIndex,
-								 boolean isKeyFrame,long firstFrameTimeStamp, long pts) {
+			boolean isKeyFrame,long firstFrameTimeStamp, long pts) {
 		/*
 		 * this control is necessary to prevent server from a native crash
 		 * in case of initiation and preparation takes long.
