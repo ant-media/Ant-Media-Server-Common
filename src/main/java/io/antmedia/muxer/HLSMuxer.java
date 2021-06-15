@@ -402,7 +402,7 @@ public class HLSMuxer extends Muxer  {
 			}
 			if (file.exists()) {
 				try {
-					storageClient.save(s3StreamsFolderPath + File.pathSeparator + subFolder + file.getName(), file);
+					RecordMuxer.saveToStorage(s3StreamsFolderPath + File.pathSeparator + subFolder, file,  getFile().getName(), storageClient);
 
 					if (deleteFileOnExit) {
 						Files.delete(file.toPath());
@@ -415,9 +415,7 @@ public class HLSMuxer extends Muxer  {
 
 		isRecording = false;	
 	}
-
-
-
+	
 	/**
 	 * {@inheritDoc}
 	 */
