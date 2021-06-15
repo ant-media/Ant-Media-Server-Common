@@ -24,7 +24,8 @@ public class BuiltinAudioDecoderFactoryFactory implements AudioDecoderFactoryFac
 	private AudioPacketListener audioPacketListener;
 	private boolean customDecoder = false;
 	private long audioDecoderFactory = -1;
-	ByteBuffer buffer = ByteBuffer.allocateDirect(4096);
+	private static final int BUFFER_LIMIT = 4096;
+	ByteBuffer buffer = ByteBuffer.allocateDirect(BUFFER_LIMIT);
 
 	@Override
 	public long createNativeAudioDecoderFactory() {
@@ -34,11 +35,20 @@ public class BuiltinAudioDecoderFactoryFactory implements AudioDecoderFactoryFac
 
 
 	@CalledByNative 
-	public void onAudioPacket(int size, long timestamp) {
-		byte data[] = new byte[size];
+	public synchronized void onAudioPacket(int size, long timestamp) {
 		buffer.rewind();
-		buffer.get(data, 0, size);
-		audioPacketListener.onAudioPacketData(ByteBuffer.wrap(data), timestamp);
+		buffer.limit(size);
+		
+		
+		ByteBuffer byteBuffer = ByteBuffer.allocateDirect(size);
+		byteBuffer.put(buffer);
+		byteBuffer.limit(size);
+		byteBuffer.rewind();
+		
+		
+		buffer.rewind();
+		buffer.limit(BUFFER_LIMIT);
+		audioPacketListener.onAudioPacketData(byteBuffer, timestamp);
 	}
 
 	public void setAudioPacketListener(AudioPacketListener audioPacketListener) {

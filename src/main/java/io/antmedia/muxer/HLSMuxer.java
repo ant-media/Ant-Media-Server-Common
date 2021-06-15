@@ -43,12 +43,15 @@ import java.io.FilenameFilter;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.tika.utils.ExceptionUtils;
 import org.bytedeco.ffmpeg.avcodec.AVBSFContext;
 import org.bytedeco.ffmpeg.avcodec.AVBitStreamFilter;
 import org.bytedeco.ffmpeg.avcodec.AVCodec;
@@ -68,22 +71,18 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.antmedia.storage.StorageClient;
-import io.antmedia.storage.StorageClient.FileType;
 import io.vertx.core.Vertx;
-
 
 public class HLSMuxer extends Muxer  {
 
 
 	private AVBSFContext bsfContext;
-	private long lastDTS = -1; 
-
-	private List<Integer> registeredStreamIndexList = new ArrayList<>();
+	private long lastDTS = -1;
 
 	protected static Logger logger = LoggerFactory.getLogger(HLSMuxer.class);
 	private String  hlsListSize = "20";
 	private String hlsTime = "5";
-	private String hlsPlayListType = null; 
+	private String hlsPlayListType = null;
 
 	private AVRational avRationalTimeBase;
 	private long totalSize;
@@ -101,14 +100,17 @@ public class HLSMuxer extends Muxer  {
 	private int videoIndex;
 	private String hlsFlags;
 	private String streamId;
-	
+
+	private String hlsEncryptionKeyInfoFile = null;
+
 	private Map<Integer, AVRational> codecTimeBaseMap = new HashMap<>();
 	private AVPacket videoPkt;
 	protected StorageClient storageClient = null;
 	private String subFolder = null;
+	private String s3StreamsFolderPath = "streams";
 
 
-	public HLSMuxer(Vertx vertx, StorageClient storageClient, String hlsListSize, String hlsTime, String hlsPlayListType, String hlsFlags) {
+	public HLSMuxer(Vertx vertx, StorageClient storageClient, String hlsListSize, String hlsTime, String hlsPlayListType, String hlsFlags, String hlsEncryptionKeyInfoFile, String s3StreamsFolderPath) {
 		super(vertx);
 		this.storageClient = storageClient;
 		extension = ".m3u8";
@@ -125,7 +127,7 @@ public class HLSMuxer extends Muxer  {
 		if (hlsPlayListType != null) {
 			this.hlsPlayListType = hlsPlayListType;
 		}
-		
+
 		if (hlsFlags != null) {
 			this.hlsFlags = hlsFlags;
 		}
@@ -133,25 +135,35 @@ public class HLSMuxer extends Muxer  {
 			this.hlsFlags = "";
 		}
 
+		if (hlsEncryptionKeyInfoFile != null && !hlsEncryptionKeyInfoFile.isEmpty()) {
+			this.hlsEncryptionKeyInfoFile = hlsEncryptionKeyInfoFile;
+		}		
+
 		avRationalTimeBase = new AVRational();
 		avRationalTimeBase.num(1);
 		avRationalTimeBase.den(1);
+
+		this.s3StreamsFolderPath  = s3StreamsFolderPath;
 	}
 
 	/**
 	 * {@inheritDoc}
 	 */
 	@Override
-	public void init(IScope scope, String name, int resolutionHeight) {
+	public void init(IScope scope, String name, int resolutionHeight, String subFolder) {
 		if (!isInitialized) {
-			super.init(scope, name, resolutionHeight);
-			
-			streamId = name;
 
+			super.init(scope, name, resolutionHeight, subFolder);
+
+			streamId = name;
 			options.put("hls_list_size", hlsListSize);
 			options.put("hls_time", hlsTime);
-			
-			
+
+			if(hlsEncryptionKeyInfoFile != null) {
+				options.put("hls_key_info_file", hlsEncryptionKeyInfoFile);
+			}
+
+
 			logger.info("hls time: {}, hls list size: {}", hlsTime, hlsListSize);
 
 			String segmentFilename = file.getParentFile() + "/" + name +"_" + resolutionHeight +"p"+ "%04d.ts";
@@ -166,14 +178,24 @@ public class HLSMuxer extends Muxer  {
 			}
 			tmpPacket = avcodec.av_packet_alloc();
 			av_init_packet(tmpPacket);
-			
-			
+
+
 			videoPkt = avcodec.av_packet_alloc();
 			av_init_packet(videoPkt);
-			
+
 			isInitialized = true;
 		}
 
+	}
+
+	public static void writeToFile(String absolutePath, String content) {
+		try {
+			Files.write(new File(absolutePath).toPath(), content.getBytes(), StandardOpenOption.CREATE);
+		} catch (IOException e) {
+			if (logger != null) {
+				logger.error(e.toString());
+			}
+		}
 	}
 
 	private AVFormatContext getOutputFormatContext() {
@@ -194,7 +216,7 @@ public class HLSMuxer extends Muxer  {
 	}
 
 	/**
-	 * 
+	 *
 	 * @return the bitrate in last 1 second
 	 */
 	public long getBitrate() {
@@ -205,7 +227,7 @@ public class HLSMuxer extends Muxer  {
 
 		long duration = (currentTime - startTime) ;
 
-		if (duration > 0) 
+		if (duration > 0)
 		{
 			return (totalSize / duration) * 8;
 		}
@@ -213,7 +235,7 @@ public class HLSMuxer extends Muxer  {
 	}
 
 
-	private  void writePacket(AVPacket pkt, AVRational inputTimebase, AVRational outputTimebase, int codecType) 
+	private  void writePacket(AVPacket pkt, AVRational inputTimebase, AVRational outputTimebase, int codecType)
 	{
 
 		if (outputFormatContext == null || !isRunning.get())  {
@@ -226,7 +248,7 @@ public class HLSMuxer extends Muxer  {
 		long dts = pkt.dts();
 		long duration = pkt.duration();
 		long pos = pkt.pos();
-		
+
 		totalSize += pkt.size();
 		partialTotalSize += pkt.size();
 		currentTime = av_rescale_q(dts, inputTimebase, avRationalTimeBase);
@@ -240,15 +262,15 @@ public class HLSMuxer extends Muxer  {
 			partialTotalSize = 0;
 			bitrateReferenceTime = currentTime;
 		}
-		
+
 		int ret;
 		pkt.pts(av_rescale_q_rnd(pkt.pts(), inputTimebase, outputTimebase, AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
 		pkt.dts(av_rescale_q_rnd(pkt.dts(), inputTimebase, outputTimebase, AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
 		pkt.duration(av_rescale_q(pkt.duration(), inputTimebase, outputTimebase));
 		pkt.pos(-1);
-		
 
-		if (codecType ==  AVMEDIA_TYPE_VIDEO) 
+
+		if (codecType ==  AVMEDIA_TYPE_VIDEO)
 		{
 			ret = av_packet_ref(tmpPacket , pkt);
 			if (ret < 0) {
@@ -256,13 +278,13 @@ public class HLSMuxer extends Muxer  {
 				return;
 			}
 
-			if (bsfContext != null) 
+			if (bsfContext != null)
 			{
 				ret = av_bsf_send_packet(bsfContext, tmpPacket);
 				if (ret < 0)
 					return;
 
-				while (av_bsf_receive_packet(bsfContext, tmpPacket) == 0) 
+				while (av_bsf_receive_packet(bsfContext, tmpPacket) == 0)
 				{
 					ret = av_write_frame(outputFormatContext, tmpPacket);
 					if (ret < 0 && logger.isInfoEnabled()) {
@@ -288,7 +310,7 @@ public class HLSMuxer extends Muxer  {
 			if (ret < 0 && logger.isInfoEnabled()) {
 				byte[] data = new byte[64];
 				av_strerror(ret, data, data.length);
-				logger.info("cannot write frame(not video) to muxer. Error is {} ", new String(data, 0, data.length));
+				logger.info("cannot write frame(not video) to muxer. Error is {} stream: {}", new String(data, 0, data.length),  file.getName());
 			}
 		}
 		pkt.pts(pts);
@@ -322,17 +344,17 @@ public class HLSMuxer extends Muxer  {
 			av_packet_free(tmpPacket);
 			tmpPacket = null;
 		}
-		
+
 		if (videoPkt != null) {
 			av_packet_free(videoPkt);
 			videoPkt = null;
 		}
-		
+
 		if (audioPkt != null) {
 			av_packet_free(audioPkt);
 			audioPkt = null;
 		}
-		
+
 		av_write_trailer(outputFormatContext);
 
 		/* close output */
@@ -344,119 +366,56 @@ public class HLSMuxer extends Muxer  {
 		outputFormatContext = null;
 
 		logger.info("Delete File onexit:{}", deleteFileOnExit);
-		if (vertx != null && deleteFileOnExit ) {
 
-			logger.info("Scheduling the task to delete. HLS time: {}, hlsListSize:{}", hlsTime, hlsListSize);
-			vertx.setTimer(Integer.parseInt(hlsTime) * Integer.parseInt(hlsListSize) * 1000, l -> {
-				logger.info("Deleting HLS files on exit");
 
-				final String filenameWithoutExtension = file.getName().substring(0, file.getName().lastIndexOf(extension));
+		logger.info("Scheduling the task to upload and/or delete. HLS time: {}, hlsListSize:{}", hlsTime, hlsListSize);
+		vertx.setTimer(Integer.parseInt(hlsTime) * Integer.parseInt(hlsListSize) * 1000, l -> {
+			logger.info("Deleting HLS files on exit");
 
-				File[] files = file.getParentFile().listFiles(new FilenameFilter() {
-					@Override
-					public boolean accept(File dir, String name) {
-						return name.contains(filenameWithoutExtension) && name.endsWith(".ts");
-					}
-				});
+			final String filenameWithoutExtension = file.getName().substring(0, file.getName().lastIndexOf(extension));
 
-				if (files != null) 
-				{
-
-					for (int i = 0; i < files.length; i++) {
-						try {
-							if (!files[i].exists()) {
-								continue;
-							}
-							Files.delete(files[i].toPath());
-						} catch (IOException e) {
-							logger.error(e.getMessage());
-						}
-					}
+			File[] files = file.getParentFile().listFiles(new FilenameFilter() {
+				@Override
+				public boolean accept(File dir, String name) {
+					return name.contains(filenameWithoutExtension) && name.endsWith(".ts");
 				}
-				if (file.exists()) {
+			});
+
+			if (files != null)
+			{
+
+				for (int i = 0; i < files.length; i++) {
 					try {
-						Files.delete(file.toPath());
+						if (!files[i].exists()) {
+							continue;
+						}
+
+						storageClient.save(s3StreamsFolderPath + File.pathSeparator + subFolder + files[i].getName(), files[i]);
+
+						if (deleteFileOnExit) {
+							Files.delete(files[i].toPath());
+						}
 					} catch (IOException e) {
 						logger.error(e.getMessage());
 					}
 				}
-			});
-		}
-		
-		isRecording = false;	
-		
-		if (vertx != null && storageClient != null && !deleteFileOnExit) {
-			logger.info("Storage client is available saving {} to storage", file.getName());
-			vertx.setTimer(Integer.parseInt(hlsTime) * Integer.parseInt(hlsListSize) * 1000, l -> {
-				
-				vertx.executeBlocking(r->{
-					
-					try {
-						logger.info("Uploading HLS files on exit");
+			}
+			if (file.exists()) {
+				try {
+					storageClient.save(s3StreamsFolderPath + File.pathSeparator + subFolder + file.getName(), file);
 
-						String streamIdWithExtension = streamId + ".m3u8";
-						String streamIdWithAdaptive = streamId + "_adaptive.m3u8";
-						String streamFolderName = streamId;
-						String tmpStreamName = streamId;
-						
-						if(subFolder != null) {
-							streamFolderName = subFolder;
-						}
-
-						if (storageClient.fileExist(FileType.TYPE_STREAM.getValue() +"/" + streamFolderName + "/" + streamIdWithExtension ) || storageClient.fileExist(FileType.TYPE_STREAM.getValue() + "/" + streamFolderName + "/" + streamIdWithAdaptive)  ) { 
-							int i = 0;
-							do {	
-								i++;
-								streamFolderName = tmpStreamName.concat("_"+ i);
-							} while (storageClient.fileExist(FileType.TYPE_STREAM.getValue() + "/" + streamFolderName  + "/"  + streamIdWithExtension) || storageClient.fileExist(FileType.TYPE_STREAM.getValue() + "/" + streamFolderName + "/" + streamIdWithAdaptive));
-						}
-
-						String streamIdwithResolution = file.getName().substring(0, file.getName().lastIndexOf(extension));
-
-						//It's necessarry for RTMP ingest
-						if( file.getName().substring(0, file.getName().lastIndexOf(extension)).equals(streamId)) {
-							streamIdwithResolution= streamIdwithResolution+"_0p";
-						}
-
-						final String filenameWithoutExtension = streamIdwithResolution;
-
-						File[] files  = file.getParentFile().listFiles(new FilenameFilter() {
-							@Override
-							public boolean accept(File dir, String name) {
-								return name.contains(filenameWithoutExtension) && name.endsWith(".ts"); 
-							}
-						});
-
-						if (files != null)
-						{
-							for (int i = 0; i < files.length; i++) {
-								if (!files[i].exists()) {
-									continue;
-								}
-								saveToStorage(files[i],streamFolderName);
-							}
-						}
-
-						if (file.exists() ) { 
-							saveToStorage(file,streamFolderName);
-						}
-					} catch (Exception e) {
-						logger.error(e.getMessage());
+					if (deleteFileOnExit) {
+						Files.delete(file.toPath());
 					}
-				}, r->{});
-
-			});
-			
-		}
-		
-	}
-	
-	public void saveToStorage(File fileToUpload, String streamFolderName) {
-		// Check file exist in S3 and change file names. In this way, new file is created after the file name changed.
-		vertx.setTimer(1000, l3 -> {
-			storageClient.save(FileType.TYPE_STREAM.getValue() + "/"+streamFolderName+"/" + fileToUpload.getName(), fileToUpload);
+				} catch (IOException e) {
+					logger.error(e.getMessage());
+				}
+			}
 		});
+
+		isRecording = false;	
 	}
+
 
 
 	/**
@@ -474,29 +433,29 @@ public class HLSMuxer extends Muxer  {
 		}
 		AVStream outStream = outputFormatContext.streams(pkt.stream_index());
 		AVRational codecTimebase = codecTimeBaseMap.get(pkt.stream_index());
-		writePacket(pkt, codecTimebase,  outStream.time_base(), outStream.codecpar().codec_type()); 
+		writePacket(pkt, codecTimebase,  outStream.time_base(), outStream.codecpar().codec_type());
 
 	}
-	
-	
+
+
 	@Override
 	public boolean addVideoStream(int width, int height, AVRational videoTimebase, int codecId, int streamIndex,
 			boolean isAVC, AVCodecParameters codecpar) {
 		boolean result = false;
 		AVFormatContext outputContext = getOutputFormatContext();
-		if (outputContext != null && isCodecSupported(codecId)) 
+		if (outputContext != null && isCodecSupported(codecId))
 		{
 			registeredStreamIndexList.add(streamIndex);
 			videoIndex = streamIndex;
 			AVStream outStream = avformat_new_stream(outputContext, null);
-			
+
 			outStream.codecpar().width(width);
 			outStream.codecpar().height(height);
 			outStream.codecpar().codec_id(codecId);
 			outStream.codecpar().codec_type(AVMEDIA_TYPE_VIDEO);
 			outStream.codecpar().format(AV_PIX_FMT_YUV420P);
 			outStream.codecpar().codec_tag(0);
-			
+
 			AVRational timeBase = new AVRational();
 			timeBase.num(1).den(1000);
 			codecTimeBaseMap.put(streamIndex, timeBase);
@@ -505,7 +464,7 @@ public class HLSMuxer extends Muxer  {
 			result = true;
 		}
 		return result;
-	
+
 	}
 
 	/**
@@ -550,18 +509,19 @@ public class HLSMuxer extends Muxer  {
 		}
 		return true;
 	}
-	
-	
+
+
 	@Override
-	public boolean addStream(AVCodecParameters codecParameters, AVRational timebase) 
+
+	public boolean addStream(AVCodecParameters codecParameters, AVRational timebase, int streamIndex) 
 	{
 		boolean result = false;
 		AVFormatContext outputContext = getOutputFormatContext();
-		if (outputContext != null && isCodecSupported(codecParameters.codec_id())) 
+		if (outputContext != null && isCodecSupported(codecParameters.codec_id()))
 		{
 			AVStream outStream = avformat_new_stream(outputContext, null);
-			
-			if (codecParameters.codec_type() == AVMEDIA_TYPE_VIDEO) 
+
+			if (codecParameters.codec_type() == AVMEDIA_TYPE_VIDEO)
 			{
 				videoIndex = outStream.index();
 				AVBitStreamFilter h264bsfc = av_bsf_get_by_name("h264_mp4toannexb");
@@ -610,17 +570,16 @@ public class HLSMuxer extends Muxer  {
 				}
 				outStream.codecpar().codec_tag(0);
 			}
-			
-			
+
+
 			outStream.time_base(timebase);
 			codecTimeBaseMap.put(outStream.index(), timebase);
-			registeredStreamIndexList.add(outStream.index());
+			registeredStreamIndexList.add(streamIndex);
 			result = true;
 		}
-		
+
 		return result;
 	}
-	
 
 
 	/**
@@ -633,12 +592,12 @@ public class HLSMuxer extends Muxer  {
 			//return false if it is already prepared
 			return false;
 		}
-		
+
 		int ret = 0;
-		
+
 		if ((context.oformat().flags() & AVFMT_NOFILE) == 0) {
 			AVIOContext pb = new AVIOContext(null);
-	
+
 			ret = avformat.avio_open(pb,  file.getAbsolutePath(), AVIO_FLAG_WRITE);
 			if (ret < 0) {
 				logger.warn("Could not open output file: {} ", file.getAbsolutePath());
@@ -655,7 +614,9 @@ public class HLSMuxer extends Muxer  {
 			for (String key : keySet) {
 				av_dict_set(optionsDictionary, key, options.get(key), 0);
 			}
-		}
+
+		}		
+
 		ret = avformat_write_header(context, optionsDictionary);		
 		if (ret < 0 && logger.isWarnEnabled()) {
 			byte[] data = new byte[1024];
@@ -699,11 +660,11 @@ public class HLSMuxer extends Muxer  {
 		AVStream outStream = getOutputFormatContext().streams(streamIndex);
 		int index = avpacket.stream_index();
 		avpacket.stream_index(streamIndex);
-		writePacket(avpacket, inStream.time_base(),  outStream.time_base(), outStream.codecpar().codec_type()); 
+		writePacket(avpacket, inStream.time_base(),  outStream.time_base(), outStream.codecpar().codec_type());
 		avpacket.stream_index(index);
 
 	}
-	
+
 	@Override
 	public void writeAudioBuffer(ByteBuffer audioFrame, int streamIndex, long timestamp) {
 		if (!isRunning.get()) {
@@ -714,7 +675,7 @@ public class HLSMuxer extends Muxer  {
 			time2log++;
 			return;
 		}
-		
+
 		audioPkt.stream_index(streamIndex);
 		audioPkt.pts(timestamp);
 		audioPkt.dts(timestamp);
@@ -723,18 +684,18 @@ public class HLSMuxer extends Muxer  {
 		audioPkt.data(new BytePointer(audioFrame));
 		audioPkt.size(audioFrame.limit());
 		audioPkt.position(0);
-		
+
 		writePacket(audioPkt, (AVCodecContext)null);
-		
+
 		av_packet_unref(audioPkt);
-		
+
 	}
-	
+
 	@Override
 	public void writeVideoBuffer(ByteBuffer encodedVideoFrame, long dts, int frameRotation, int streamIndex,
-								 boolean isKeyFrame,long firstFrameTimeStamp, long pts) {
+			boolean isKeyFrame,long firstFrameTimeStamp, long pts) {
 		/*
-		 * this control is necessary to prevent server from a native crash 
+		 * this control is necessary to prevent server from a native crash
 		 * in case of initiation and preparation takes long.
 		 * because native objects like videoPkt can not be initiated yet
 		 */
@@ -746,29 +707,29 @@ public class HLSMuxer extends Muxer  {
 			time2log++;
 			return;
 		}
-		
+
 		videoPkt.stream_index(streamIndex);
 		videoPkt.pts(pts);
 		videoPkt.dts(dts);
-		
+
 		encodedVideoFrame.rewind();
 		if (isKeyFrame) {
 			videoPkt.flags(videoPkt.flags() | AV_PKT_FLAG_KEY);
 		}
-		
+
 		BytePointer bytePointer = new BytePointer(encodedVideoFrame);
 		videoPkt.data(bytePointer);
 		videoPkt.size(encodedVideoFrame.limit());
 		videoPkt.position(0);
-		
-	
+
+
 		writePacket(videoPkt, (AVCodecContext)null);
-		
+
 		av_packet_unref(videoPkt);
 	}
 
 
-	
+
 	public int getVideoWidth() {
 		return videoWidth;
 	}

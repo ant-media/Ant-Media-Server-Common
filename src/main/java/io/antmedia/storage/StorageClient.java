@@ -6,26 +6,29 @@ public abstract class StorageClient {
 	
 	
 	public static final String BEAN_NAME = "app.storageClient";
-	
-	public enum FileType {
-		TYPE_PREVIEW("previews"),
-		TYPE_STREAM("streams");
-		
-		private String value;
 
-		private FileType(String value) {
-			this.value = value;
-		}
-		
-		public String getValue() {
-			return value;
-		}
-	}
-
+	/**
+	 * Endpoint for the storage, it's optional and it's used in some platforms like Digital Ocean, Wasabi, OVH
+	 */
 	private String endpoint;
+	
+	/**
+	 * Access key to access the storage
+	 */
 	private String accessKey;
+	/**
+	 * Secret key for the storage
+	 */
 	private String secretKey;
+	
+	/**
+	 * The region of the storage. It's like us-west-1 in S3
+	 */
 	private String region;
+	
+	/**
+	 * Name of the storage. It's bucketname for S3
+	 */
 	private String storageName;
 	
 	/**
@@ -34,6 +37,8 @@ public abstract class StorageClient {
 	 */
 	private String permission = "public-read";
 
+	private boolean enabled;
+
 	
 	/**
 	 * Delete file from storage
@@ -41,17 +46,7 @@ public abstract class StorageClient {
 	 * @param fileName
 	 * @param type
 	 */
-	public abstract void delete(String fileName, FileType type);
-	
-	/**
-	 * Save file to storage and delete the local file
-	 * 
-	 * @param file
-	 * File to be saved to storage
-	 * @param type
-	 * type of the file
-	 */
-	public abstract void save(final File file, FileType type);
+	public abstract void delete(String key);
 	
 	/**
 	 * Save file to storage and delete the local file 
@@ -61,15 +56,6 @@ public abstract class StorageClient {
 	 */
 	public abstract void save(String key, File file);
 
-	/**
-	 * Checks file exists on storage
-	 * 
-	 * @param fileName
-	 * @param type
-	 * @return
-	 */
-	public abstract boolean fileExist(String fileName, FileType type);
-	
 	/**
 	 * Check if the key exists in the bucket
 	 * 
@@ -124,5 +110,13 @@ public abstract class StorageClient {
 	
 	public String getPermission() {
 		return permission;
+	}
+	
+	public boolean isEnabled() {
+		return enabled;
+	}
+	
+	public void setEnabled(boolean enabled) {
+		this.enabled = enabled;
 	}
 }
