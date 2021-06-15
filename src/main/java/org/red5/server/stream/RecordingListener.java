@@ -112,7 +112,7 @@ public class RecordingListener implements IRecordingListener {
         // get stream filename generator
         IStreamFilenameGenerator generator = (IStreamFilenameGenerator) ScopeUtils.getScopeService(scope, IStreamFilenameGenerator.class, DefaultStreamFilenameGenerator.class);
         // generate filename
-        String fileName = generator.generateFilename(scope, name, ".flv", GenerationType.RECORD);
+        String fileName = generator.generateFilename(scope, name, ".flv", GenerationType.RECORD, null);
         File file = null;
         if (generator.resolvesToAbsolutePath()) {
             file = new File(fileName);
