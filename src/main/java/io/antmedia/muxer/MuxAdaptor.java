@@ -232,7 +232,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	private ConcurrentHashMap<String, String> endpointStatusUpdateMap = new ConcurrentHashMap<>();
 	
 	
-	private PacketFeeder packetFeeder;
+	protected PacketFeeder packetFeeder;
 
 	private static final int COUNT_TO_LOG_BUFFER = 500;
 
