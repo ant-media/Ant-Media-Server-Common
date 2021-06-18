@@ -135,6 +135,7 @@ public class RtmpMuxer extends Muxer {
 
 	private AVFormatContext getOutputFormatContext() {
 		if (outputFormatContext == null) {
+			logger.info("Filling outputFormatContext");
 			outputFormatContext= new AVFormatContext(null);
 			int ret = avformat_alloc_output_context2(outputFormatContext, null, format, null);
 			if (ret < 0) {
@@ -199,13 +200,12 @@ public class RtmpMuxer extends Muxer {
 	}
 
 	/**
-	 * writeHeader and writeTrailer methods are synchronized. 
-	 * Because we have encountered some cases that while it's in writeHeader, writeTrailer is called. 
+	 * If the broadcast is stopped while the muxer is writing the header
+	 * it cannot complete writing the header
 	 * Then writeTrailer causes crash because of memory problem.
-	 * 
-	 * synchronized methods are not called at the same time from different threads
+	 * We need to control if header is written before trying to write Trailer.
 	 */
-	private synchronized boolean writeHeader() {
+	private boolean writeHeader() {
 		long startTime = System.currentTimeMillis();
 		AVDictionary optionsDictionary = null;
 
@@ -244,20 +244,25 @@ public class RtmpMuxer extends Muxer {
 	 * Look at the comments {@code writeHeader}
 	 */
 	@Override
-	public synchronized void writeTrailer() {
-
+	public void writeTrailer() {
 		if (!isRunning.get() || outputFormatContext == null || outputFormatContext.pb() == null) {
 			//return if it is already null
 			logger.info("RTMPMuxer is not running or output context is null for stream: {}", url);
 			return;
 		}
-		logger.info("Writing trailer for stream id: {}", url);
-		isRunning.set(false);
 
-		av_write_trailer(outputFormatContext);
-		clearResource();
-		setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED);
-		isRecording = false;
+		if(headerWritten){
+			logger.info("Writing trailer for stream id: {}", url);
+			isRunning.set(false);
+
+			av_write_trailer(outputFormatContext);
+			clearResource();
+			setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED);
+			isRecording = false;
+		}
+		else{
+			logger.info("Not writing trailer because header is not written yet");
+		}
 	}
 
 
