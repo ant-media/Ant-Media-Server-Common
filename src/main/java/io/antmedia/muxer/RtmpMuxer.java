@@ -71,6 +71,7 @@ public class RtmpMuxer extends Muxer {
 	private AVBSFContext bsfExtractdataContext = null;
 	private AVPacket tmpPacket;
 	private volatile boolean headerWritten = false;
+	private volatile boolean trailerWritten = false;
 	private IEndpointStatusListener statusListener;
 
 
@@ -203,40 +204,46 @@ public class RtmpMuxer extends Muxer {
 	 * If the broadcast is stopped while the muxer is writing the header
 	 * it cannot complete writing the header
 	 * Then writeTrailer causes crash because of memory problem.
-	 * We need to control if header is written before trying to write Trailer.
+	 * We need to control if header is written before trying to write Trailer and synchronize them.
 	 */
-	private boolean writeHeader() {
-		long startTime = System.currentTimeMillis();
-		AVDictionary optionsDictionary = null;
+	private synchronized boolean writeHeader() {
+		if(!trailerWritten) {
+			long startTime = System.currentTimeMillis();
+			AVDictionary optionsDictionary = null;
 
-		if (!options.isEmpty()) {
-			optionsDictionary = new AVDictionary();
-			Set<String> keySet = options.keySet();
-			for (String key : keySet) {
-				av_dict_set(optionsDictionary, key, options.get(key), 0);
+			if (!options.isEmpty()) {
+				optionsDictionary = new AVDictionary();
+				Set<String> keySet = options.keySet();
+				for (String key : keySet) {
+					av_dict_set(optionsDictionary, key, options.get(key), 0);
+				}
 			}
+
+			logger.info("before writing rtmp muxer header to {}", url);
+			int ret = avformat_write_header(getOutputFormatContext(), optionsDictionary);
+			if (ret < 0) {
+				setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FAILED);
+				logger.warn("could not write header to rtmp url {}", url);
+
+				clearResource();
+				return false;
+			}
+			if (optionsDictionary != null) {
+				av_dict_free(optionsDictionary);
+				optionsDictionary = null;
+			}
+			long diff = System.currentTimeMillis() - startTime;
+			logger.info("write header takes {}", diff);
+			headerWritten = true;
+			isRunning.set(true);
+			setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
+
+			return true;
 		}
-
-		logger.info("before writing rtmp muxer header to {}", url);
-		int ret = avformat_write_header(getOutputFormatContext(), optionsDictionary);		
-		if (ret < 0) {
-			setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FAILED);
-			logger.warn("could not write header to rtmp url {}", url);
-
-			clearResource();
+		else{
+			logger.info("Trying to write header after writing trailer");
 			return false;
 		}
-		if (optionsDictionary != null) {
-			av_dict_free(optionsDictionary);
-			optionsDictionary = null;
-		}
-		long diff = System.currentTimeMillis() - startTime;
-		logger.info("write header takes {}", diff);
-		headerWritten = true;
-		isRunning.set(true);
-		setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
-
-		return true;
 	}
 
 	/**
@@ -244,7 +251,7 @@ public class RtmpMuxer extends Muxer {
 	 * Look at the comments {@code writeHeader}
 	 */
 	@Override
-	public void writeTrailer() {
+	public synchronized void writeTrailer() {
 		if (!isRunning.get() || outputFormatContext == null || outputFormatContext.pb() == null) {
 			//return if it is already null
 			logger.info("RTMPMuxer is not running or output context is null for stream: {}", url);
@@ -259,6 +266,7 @@ public class RtmpMuxer extends Muxer {
 			clearResource();
 			setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED);
 			isRecording = false;
+			trailerWritten = true;
 		}
 		else{
 			logger.info("Not writing trailer because header is not written yet");
