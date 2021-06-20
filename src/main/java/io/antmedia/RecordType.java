@@ -2,7 +2,7 @@ package io.antmedia;
 
 public enum RecordType {
 	MP4("mp4"),
-	WEBM("WebM");
+	WEBM("webm");
 	
 	private String name;
 	RecordType(String name) {
