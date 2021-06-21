@@ -22,6 +22,7 @@ public class StreamInfo implements IStreamInfo {
 	@Id
 	private ObjectId dbId;
 	private String streamId;
+	private String streamName;
 	private int height;
 	private int width;
 	private int videoBitrate;
@@ -194,6 +195,14 @@ public class StreamInfo implements IStreamInfo {
 
 	public void setGlobalHost(boolean isGlobalHost) {
 		this.isGlobalHost = isGlobalHost;
+	}
+	
+	public String getStreamName() {
+		return streamName;
+	}
+
+	public void setStreamName(String streamName) {
+		this.streamName = streamName;
 	}
 
 }

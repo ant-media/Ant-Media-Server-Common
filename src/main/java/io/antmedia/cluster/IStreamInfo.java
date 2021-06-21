@@ -3,6 +3,12 @@ package io.antmedia.cluster;
 import io.antmedia.webrtc.VideoCodec;
 
 public interface IStreamInfo {
+	
+	/**
+	 * Returns the stream name
+	 * @return
+	 */
+	public String getStreamName();
 
 	/**
 	 * Returns the height of the video
