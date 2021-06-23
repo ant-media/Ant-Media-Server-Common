@@ -364,9 +364,7 @@ public abstract class Muxer {
 	 * @param streamIndex, is the stream index of the source. Sometimes source and target stream index do not match
 	 * @return
 	 */
-	public boolean addStream(AVCodecParameters codecParameters, AVRational timebase, int streamIndex) {
-		return false;
-	}
+	public abstract boolean addStream(AVCodecParameters codecParameters, AVRational timebase, int streamIndex);
 
 	public void writeAudioBuffer(ByteBuffer byteBuffer, int i, long timestamp) {
 		//empty implementation
