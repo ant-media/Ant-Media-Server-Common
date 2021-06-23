@@ -75,6 +75,7 @@ import net.sf.ehcache.util.concurrent.ConcurrentHashMap;
 public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 
+	public static final String PUBLISH_TYPE_RTMP = "RTMP";
 	public static final String ADAPTIVE_SUFFIX = "_adaptive";
 	private static Logger logger = LoggerFactory.getLogger(MuxAdaptor.class);
 
@@ -152,7 +153,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	private int previewCreatePeriod;
 	private double oldspeed;
 	private long lastQualityUpdateTime = 0;
-	protected Broadcast broadcast;
+	private Broadcast broadcast;
 	protected AppSettings appSettings;
 	private int previewHeight;
 	private int lastFrameTimestamp;
@@ -363,7 +364,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		}
 
 		for (Muxer muxer : muxerList) {
-			muxer.init(scope, streamId, 0, broadcast != null ? broadcast.getSubFolder(): null);
+			muxer.init(scope, streamId, 0, broadcast.getSubFolder());
 		}
 		getStreamHandler().muxAdaptorAdded(this);
 		return true;
@@ -568,7 +569,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		}
 
 		prepareMuxerIO();
-		getStreamHandler().startPublish(streamId,broadcastStream.getAbsoluteStartTimeMs(), "RTMP");
+		getStreamHandler().startPublish(streamId, broadcastStream.getAbsoluteStartTimeMs(), PUBLISH_TYPE_RTMP);
 
 
 		return true;
