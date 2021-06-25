@@ -139,6 +139,7 @@ public abstract class Muxer {
 	}
 
 	/**
+	 * @Deprecated - use {@link #addStream(AVCodecParameters, AVRational, int)}
 	 * Add a new stream with this codec, codecContext and stream Index
 	 * parameters. After adding streams, need to call prepareIO()
 	 *
@@ -327,6 +328,7 @@ public abstract class Muxer {
     }
 
 	/**
+	 * @Deprecated - use {@link #addStream(AVCodecParameters, AVRational, int)}
 	 * Add video stream to the muxer with direct parameters. Not all muxers support this feature so that
 	 * default implementation does nothing and returns false
 	 *
@@ -343,6 +345,7 @@ public abstract class Muxer {
 	}
 
 	/**
+	 * @Deprecated - use {@link #addStream(AVCodecParameters, AVRational, int)}
 	 * Add audio stream to the muxer
 	 * @param sampleRate
 	 * @param channelLayout
@@ -361,9 +364,7 @@ public abstract class Muxer {
 	 * @param streamIndex, is the stream index of the source. Sometimes source and target stream index do not match
 	 * @return
 	 */
-	public boolean addStream(AVCodecParameters codecParameters, AVRational timebase, int streamIndex) {
-		return false;
-	}
+	public abstract boolean addStream(AVCodecParameters codecParameters, AVRational timebase, int streamIndex);
 
 	public void writeAudioBuffer(ByteBuffer byteBuffer, int i, long timestamp) {
 		//empty implementation
