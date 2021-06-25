@@ -71,6 +71,7 @@ public class RtmpMuxer extends Muxer {
 	private AVBSFContext bsfExtractdataContext = null;
 	private AVPacket tmpPacket;
 	private volatile boolean headerWritten = false;
+	private volatile boolean trailerWritten = false;
 	private IEndpointStatusListener statusListener;
 
 
@@ -135,6 +136,7 @@ public class RtmpMuxer extends Muxer {
 
 	private AVFormatContext getOutputFormatContext() {
 		if (outputFormatContext == null) {
+			logger.info("Filling outputFormatContext");
 			outputFormatContext= new AVFormatContext(null);
 			int ret = avformat_alloc_output_context2(outputFormatContext, null, format, null);
 			if (ret < 0) {
@@ -199,44 +201,49 @@ public class RtmpMuxer extends Muxer {
 	}
 
 	/**
-	 * writeHeader and writeTrailer methods are synchronized. 
-	 * Because we have encountered some cases that while it's in writeHeader, writeTrailer is called. 
+	 * If the broadcast is stopped while the muxer is writing the header
+	 * it cannot complete writing the header
 	 * Then writeTrailer causes crash because of memory problem.
-	 * 
-	 * synchronized methods are not called at the same time from different threads
+	 * We need to control if header is written before trying to write Trailer and synchronize them.
 	 */
 	private synchronized boolean writeHeader() {
-		long startTime = System.currentTimeMillis();
-		AVDictionary optionsDictionary = null;
+		if(!trailerWritten) {
+			long startTime = System.currentTimeMillis();
+			AVDictionary optionsDictionary = null;
 
-		if (!options.isEmpty()) {
-			optionsDictionary = new AVDictionary();
-			Set<String> keySet = options.keySet();
-			for (String key : keySet) {
-				av_dict_set(optionsDictionary, key, options.get(key), 0);
+			if (!options.isEmpty()) {
+				optionsDictionary = new AVDictionary();
+				Set<String> keySet = options.keySet();
+				for (String key : keySet) {
+					av_dict_set(optionsDictionary, key, options.get(key), 0);
+				}
 			}
+
+			logger.info("before writing rtmp muxer header to {}", url);
+			int ret = avformat_write_header(getOutputFormatContext(), optionsDictionary);
+			if (ret < 0) {
+				setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FAILED);
+				logger.warn("could not write header to rtmp url {}", url);
+
+				clearResource();
+				return false;
+			}
+			if (optionsDictionary != null) {
+				av_dict_free(optionsDictionary);
+				optionsDictionary = null;
+			}
+			long diff = System.currentTimeMillis() - startTime;
+			logger.info("write header takes {}", diff);
+			headerWritten = true;
+			isRunning.set(true);
+			setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
+
+			return true;
 		}
-
-		logger.info("before writing rtmp muxer header to {}", url);
-		int ret = avformat_write_header(getOutputFormatContext(), optionsDictionary);		
-		if (ret < 0) {
-			setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FAILED);
-			logger.warn("could not write header to rtmp url {}", url);
-
-			clearResource();
+		else{
+			logger.info("Trying to write header after writing trailer");
 			return false;
 		}
-		if (optionsDictionary != null) {
-			av_dict_free(optionsDictionary);
-			optionsDictionary = null;
-		}
-		long diff = System.currentTimeMillis() - startTime;
-		logger.info("write header takes {}", diff);
-		headerWritten = true;
-		isRunning.set(true);
-		setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
-
-		return true;
 	}
 
 	/**
@@ -245,19 +252,25 @@ public class RtmpMuxer extends Muxer {
 	 */
 	@Override
 	public synchronized void writeTrailer() {
-
 		if (!isRunning.get() || outputFormatContext == null || outputFormatContext.pb() == null) {
 			//return if it is already null
 			logger.info("RTMPMuxer is not running or output context is null for stream: {}", url);
 			return;
 		}
-		logger.info("Writing trailer for stream id: {}", url);
-		isRunning.set(false);
 
-		av_write_trailer(outputFormatContext);
-		clearResource();
-		setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED);
-		isRecording = false;
+		if(headerWritten){
+			logger.info("Writing trailer for stream id: {}", url);
+			isRunning.set(false);
+
+			av_write_trailer(outputFormatContext);
+			clearResource();
+			setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED);
+			isRecording = false;
+			trailerWritten = true;
+		}
+		else{
+			logger.info("Not writing trailer because header is not written yet");
+		}
 	}
 
 
