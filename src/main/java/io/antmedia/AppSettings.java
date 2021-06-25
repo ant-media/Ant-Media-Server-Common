@@ -273,7 +273,10 @@ public class AppSettings {
 	private static final String SETTINGS_S3_STREAMS_FOLDER_PATH = "settings.s3.streams.folder.path";
 	
 	private static final String SETTINGS_S3_PREVIEWS_FOLDER_PATH = "settings.s3.previews.folder.path";
+	
 	private static final String SETTINGS_DASH_HTTP_ENDPOINT = "settings.dash.httpEndpoint";
+	
+	private static final String SETTINGS_FORCE_DECODING = "settings.forceDecoding";
 
 	public static final String SETTINGS_S3_RECORDING_ENABLED = "settings.s3RecordingEnabled";
 
@@ -1233,6 +1236,7 @@ public class AppSettings {
 	@Value( "${"+SETTINGS_DASH_HTTP_STREAMING+":true}" )
 	private boolean dashHttpStreaming;
 	
+	
 	/**
 	 * It's S3 streams MP4, WEBM  and HLS files storage name . 
 	 * It's streams by default.
@@ -1255,6 +1259,13 @@ public class AppSettings {
 	 */
 	@Value( "${"+SETTINGS_DASH_HTTP_ENDPOINT+":#{null}}" )
 	private String dashHttpEndpoint;
+	
+	/**
+	 * Force stream decoding even if there is no adaptive setting
+	 */
+	@Value("${" + SETTINGS_FORCE_DECODING+ ":false}")
+	private boolean forceDecoding;
+	
 
 	/**
 	 * Application JWT Control Enabled
@@ -2464,11 +2475,11 @@ public class AppSettings {
 	public String getS3StreamsFolderPath() {
 		return s3StreamsFolderPath;
 	}
-
+	
 	public String getDashHttpEndpoint() {
 		return dashHttpEndpoint;
 	}
-
+	
 
 	public boolean isS3RecordingEnabled() { return s3RecordingEnabled; }
 
@@ -2517,7 +2528,7 @@ public class AppSettings {
 	public void setDashHttpEndpoint(String dashHttpEndpoint) {
 		this.dashHttpEndpoint = dashHttpEndpoint;
 	}
-
+	
 	public String getHlsEncryptionKeyInfoFile() {
 		return hlsEncryptionKeyInfoFile;
 	}
@@ -2537,5 +2548,13 @@ public class AppSettings {
 	public void setS3PreviewsFolderPath(String s3PreviewsFolderPath) {
 		this.s3PreviewsFolderPath = s3PreviewsFolderPath;
 	}
-	
+
+	public boolean isForceDecoding() {
+		return forceDecoding;
+	}
+
+	public void setForceDecoding(boolean forceDecoding) {
+		this.forceDecoding = forceDecoding;
+	}
+
 }

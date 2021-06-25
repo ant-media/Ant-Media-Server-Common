@@ -92,6 +92,8 @@ public abstract class Muxer {
 	 */
 	protected String bsfName = null;
 
+	protected String streamId = null;
+
 	public Muxer(Vertx vertx) {
 		this.vertx = vertx;
 	}
@@ -223,6 +225,7 @@ public abstract class Muxer {
 	 * redundant to init multiple times.
 	 */
 	public void init(IScope scope, String name, int resolution, String subFolder) {
+		this.streamId = name;
 		init(scope, name, resolution, true, subFolder);
 	}
 

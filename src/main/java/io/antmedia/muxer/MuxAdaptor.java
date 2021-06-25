@@ -67,6 +67,9 @@ import io.antmedia.muxer.parser.AACConfigParser;
 import io.antmedia.muxer.parser.AACConfigParser.AudioObjectTypes;
 import io.antmedia.settings.IServerSettings;
 import io.antmedia.muxer.parser.SpsParser;
+import io.antmedia.plugin.PacketFeeder;
+import io.antmedia.plugin.api.IPacketListener;
+import io.antmedia.plugin.api.StreamParametersInfo;
 import io.antmedia.storage.StorageClient;
 import io.vertx.core.Vertx;
 import net.sf.ehcache.util.concurrent.ConcurrentHashMap;
@@ -227,7 +230,9 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	private BytePointer audioExtraDataPointer;
 	private BytePointer videoExtraDataPointer;
 	private AtomicLong endpointStatusUpdaterTimer = new AtomicLong(-1l);
-	private ConcurrentHashMap<String, String> endpointStatusUpdateMap = new ConcurrentHashMap<>();
+	private ConcurrentHashMap<String, String> endpointStatusUpdateMap = new ConcurrentHashMap<>();	
+	
+	protected PacketFeeder packetFeeder;
 
 
 	private static final int COUNT_TO_LOG_BUFFER = 500;
@@ -245,7 +250,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		if (applicationContext.containsBean(AppSettings.BEAN_NAME)) {
 			AppSettings appSettings = (AppSettings) applicationContext.getBean(AppSettings.BEAN_NAME);
 			List<EncoderSettings> list = appSettings.getEncoderSettings();
-			if ((list != null && !list.isEmpty()) || appSettings.isWebRTCEnabled()) {
+			if ((list != null && !list.isEmpty()) || appSettings.isWebRTCEnabled() || appSettings.isForceDecoding()) {
 				/*
 				 * enable encoder adaptor if webrtc enabled because we're supporting forwarding video to end user
 				 * without transcoding. We need encoder adaptor because we need to transcode audio
@@ -335,6 +340,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 		this.streamId = streamId;
 		this.scope = scope;
+		packetFeeder = new PacketFeeder(streamId);
 
 		getDataStore();
 		enableSettings();
@@ -450,7 +456,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	}
 
 
-	protected AVCodecParameters getAudioCodecParameters() {
+	public AVCodecParameters getAudioCodecParameters() {
 
 
 		if (audioDataConf != null && audioCodecParameters == null) 
@@ -493,7 +499,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	}
 
 
-	protected AVCodecParameters getVideoCodecParameters()
+	public AVCodecParameters getVideoCodecParameters() 
 	{
 		if (videoDataConf != null && videoCodecParameters == null) {
 			SpsParser spsParser = new SpsParser(getAnnexbExtradata(videoDataConf), 5);
@@ -779,6 +785,8 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 			synchronized (muxerList) 
 			{
+				packetFeeder.writeVideoBuffer(byteBuffer, dts, 0, videoStreamIndex, (frameType & 0xF0) == IVideoStreamCodec.FLV_FRAME_KEY, 0, pts);
+
 				for (Muxer muxer : muxerList) 
 				{
 					muxer.writeVideoBuffer(byteBuffer, dts, 0, videoStreamIndex, (frameType & 0xF0) == IVideoStreamCodec.FLV_FRAME_KEY, 0, pts);
@@ -806,6 +814,8 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 			synchronized (muxerList) 
 			{
+				packetFeeder.writeAudioBuffer(byteBuffer, audioStreamIndex, dts);
+
 				for (Muxer muxer : muxerList) 
 				{
 					muxer.writeAudioBuffer(byteBuffer, audioStreamIndex, dts);
@@ -1082,6 +1092,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 		synchronized (muxerList)
 		{
+			packetFeeder.writePacket(pkt);
 			for (Muxer muxer : muxerList) {
 				muxer.writePacket(pkt, stream);
 			}
@@ -1089,6 +1100,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	}
 
 	public synchronized void writeTrailer() {
+		packetFeeder.writeTrailer();
 		for (Muxer muxer : muxerList) {
 			muxer.writeTrailer();
 		}
@@ -1745,8 +1757,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	public LinkedList<PacketTime> getPacketTimeList() {
 		return packetTimeList;
 	}
-
-
+	
 	public int getVideoStreamIndex() {
 		return videoStreamIndex;
 	}
@@ -1764,6 +1775,39 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 	public void setAudioStreamIndex(int audioStreamIndex) {
 		this.audioStreamIndex = audioStreamIndex;
+	}
+
+	public void addPacketListener(IPacketListener listener) {
+		StreamParametersInfo videoInfo = new StreamParametersInfo();
+		videoInfo.codecParameters = getVideoCodecParameters();
+		videoInfo.timeBase = getVideoTimeBase();
+		StreamParametersInfo audioInfo = new StreamParametersInfo();
+		audioInfo.codecParameters = getAudioCodecParameters();
+		audioInfo.timeBase = getAudioTimeBase();
+		
+		listener.setVideoStreamInfo(streamId, videoInfo);
+		listener.setAudioStreamInfo(streamId, audioInfo);
+		packetFeeder.addListener(listener);
+	}
+	
+	public void removePacketListener(IPacketListener listener) {
+		packetFeeder.removeListener(listener);
+	}
+	
+	public void setVideoCodecParameter(AVCodecParameters videoCodecParameters) {
+		this.videoCodecParameters = videoCodecParameters;
+	}
+
+	public void setAudioCodecParameter(AVCodecParameters audioCodecParameters) {
+		this.audioCodecParameters = audioCodecParameters;
+	}
+
+	public AVRational getVideoTimeBase() {
+		return TIME_BASE_FOR_MS;
+	}
+	
+	public AVRational getAudioTimeBase() {
+		return TIME_BASE_FOR_MS;
 	}
 }
 
