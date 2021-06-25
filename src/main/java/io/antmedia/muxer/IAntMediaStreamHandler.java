@@ -71,5 +71,12 @@ public interface IAntMediaStreamHandler {
 	 */
 	public boolean isServerShuttingDown();
 
+	/**
+	 * Notify the handler that stream is started to publish
+	 * @param streamName
+	 * @param absoluteStartTimeMs
+	 * @param publishType
+	 */
 	public void startPublish(String streamName, long absoluteStartTimeMs, String publishType);
+	
 }

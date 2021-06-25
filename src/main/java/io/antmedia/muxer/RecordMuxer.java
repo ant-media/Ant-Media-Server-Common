@@ -197,6 +197,22 @@ public abstract class RecordMuxer extends Muxer {
 
 		return result;
 	}
+	
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	public synchronized boolean addStream(AVCodec codec, AVCodecContext codecContext, int streamIndex) {
+		
+		AVCodecParameters codecParameter = new AVCodecParameters();
+		int ret = avcodec_parameters_from_context(codecParameter, codecContext);
+		if (ret < 0) {
+			logger.error("Cannot get codec parameters for {}", streamId);
+		}
+		return addStream(codecParameter, codecContext.time_base(), streamIndex);
+	}
+	
+	
 
 	@Override
 	public synchronized boolean addStream(AVCodecParameters codecParameters, AVRational timebase, int streamIndex) 
@@ -228,42 +244,14 @@ public abstract class RecordMuxer extends Muxer {
 			//if it's data, do not add and return true
 			result = true;
 		}
+		else {
+			logger.warn("Stream is not added for muxing to {} for stream:{}", getFileName(), streamId);
+		}
 
 		return result;
 	}
 
-	/**
-	 * {@inheritDoc}
-	 */
-	@Override
-	public synchronized boolean addStream(AVCodec codec, AVCodecContext codecContext, int streamIndex) {
 
-		AVFormatContext outputContext = getOutputFormatContext();
-
-		if (outputContext == null) {
-			return false;
-		}
-
-		if (isCodecSupported(codecContext.codec_id())) {
-			registeredStreamIndexList.add(streamIndex);
-			AVStream outStream = avformat_new_stream(outputContext, null);
-
-			outStream.time_base(codecContext.time_base());
-			int ret = avcodec_parameters_from_context(outStream.codecpar(), codecContext);
-
-			logger.info("codec par extradata size {} codec id: {}", outStream.codecpar().extradata_size(), codecContext.codec_id());
-			if (ret < 0) {
-				logger.error("codec context cannot be copied for {}", streamId);
-			}
-
-			outStream.codecpar().codec_tag(0);
-			codecTimeBaseMap.put(streamIndex, codecContext.time_base());
-		}
-		else {
-			logger.warn("Codec is not supported muxing to {} for stream:{}", getFileName(), streamId);
-		}
-		return true;
-	}
 
 	public AVFormatContext getOutputFormatContext() {
 		if (outputFormatContext == null) {
